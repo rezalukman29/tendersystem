@@ -3,6 +3,6 @@ module.exports = {
   setupFiles: ['./jest/setup.js'],
   setupFilesAfterEnv: ['./jest/after-env.js'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|lucide-react-native|react-native-svg|react-native-safe-area-context)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|@react-navigation|@reduxjs|@standard-schema|immer|react-redux|redux|reselect|use-sync-external-store|lucide-react-native|react-native-svg|react-native-safe-area-context)/)',
   ],
 };

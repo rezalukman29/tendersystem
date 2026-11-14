@@ -2,6 +2,7 @@ import * as React from "react"
 import { ActivityIndicator, StatusBar, View } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
+import { AppProviders } from "./src/app/AppProviders"
 import { RootNavigator } from "./src/navigation"
 import { AppStoreProvider } from "./src/store"
 import { color } from "./src/theme"
@@ -18,13 +19,15 @@ function Loading() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={color.ground} />
-      <ToastProvider>
-        <AppStoreProvider fallback={<Loading />}>
-          <RootNavigator />
-        </AppStoreProvider>
-      </ToastProvider>
-    </SafeAreaProvider>
+    <AppProviders>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" backgroundColor={color.ground} />
+        <ToastProvider>
+          <AppStoreProvider fallback={<Loading />}>
+            <RootNavigator />
+          </AppStoreProvider>
+        </ToastProvider>
+      </SafeAreaProvider>
+    </AppProviders>
   )
 }

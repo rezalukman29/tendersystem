@@ -15,3 +15,7 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(async () => ({didCancel: true})),
 }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
+jest.mock('react-native-config', () => ({
+  API_BASE_URL: 'https://booqable-staging.emi.web.id',
+  API_TIMEOUT_MS: '30000',
+}));

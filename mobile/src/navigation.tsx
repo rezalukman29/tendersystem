@@ -5,10 +5,11 @@ import { Boxes, CalendarRange, CircleUserRound, ClipboardCheck, ScanLine, type L
 import * as React from "react"
 import { Text, View } from "react-native"
 
+import { EventsScreen } from "./features/events/screens/EventsScreen"
+import { LoginScreen } from "./features/auth/screens/LoginScreen"
+import { useAppSelector } from "./redux/hooks"
 import { EventDetailScreen } from "./screens/EventDetail"
-import { EventsScreen } from "./screens/Events"
 import { ItemDetailScreen } from "./screens/ItemDetail"
-import { LoginScreen } from "./screens/Login"
 import { OpnameScreen } from "./screens/Opname"
 import { OpnameCountScreen } from "./screens/OpnameCount"
 import { OpnameDetailScreen } from "./screens/OpnameDetail"
@@ -102,11 +103,13 @@ function Tabs() {
 }
 
 export function RootNavigator() {
-  const { user } = useAppStore()
+  const isAuthenticated = useAppSelector(
+    (state) => state.session.status === "authenticated"
+  )
   return (
     <NavigationContainer ref={navigationRef} theme={theme}>
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.ground } }}>
-        {!user ? (
+        {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>

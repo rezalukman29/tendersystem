@@ -1,8 +1,10 @@
 import * as React from "react"
+import { Provider as ReduxProvider } from "react-redux"
 import ReactTestRenderer from "react-test-renderer"
 
 import { EVENTS, keyOf } from "../src/core/seed"
 import { AppStoreProvider, useAppStore } from "../src/store"
+import { store as reduxStore } from "../src/redux/store"
 import { ToastProvider } from "../src/ui/toast"
 
 jest.useFakeTimers()
@@ -17,11 +19,13 @@ function Probe() {
 async function mount() {
   await ReactTestRenderer.act(async () => {
     ReactTestRenderer.create(
-      <ToastProvider>
-        <AppStoreProvider>
-          <Probe />
-        </AppStoreProvider>
-      </ToastProvider>
+      <ReduxProvider store={reduxStore}>
+        <ToastProvider>
+          <AppStoreProvider>
+            <Probe />
+          </AppStoreProvider>
+        </ToastProvider>
+      </ReduxProvider>
     )
   })
 }

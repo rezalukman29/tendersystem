@@ -18,6 +18,8 @@ import {
 } from "./core/rules"
 import { CLOSING, EVENTS, ITEMS, LINES, OPNAMES, PACKAGES, PROGRESS, RENTALS, ROWS, STAGES, TODAY, USERS, keyOf } from "./core/seed"
 import type { Closing, EmiEvent, EventLine, Movement, Opname, OpnameLine, OutboxEntry, Ownership, Package, Rental, Stage, User, WhRow } from "./core/types"
+import type { IProfile } from "./entities/interfaces/auth/IProfile"
+import { useAppSelector } from "./redux/hooks"
 import { useToast } from "./ui/toast"
 
 const STORAGE_KEY = "emi:mobile:v1"
@@ -105,6 +107,22 @@ const Ctx = React.createContext<AppStore | null>(null)
 
 const nowISO = () => new Date().toISOString()
 
+function profileUser(profile: IProfile): User | null {
+  if (!profile.id) return null
+
+  const userType = profile.userType.toUpperCase()
+  const role = userType.includes("ADMIN") ? "Admin" : userType.includes("VIEW") ? "Viewer" : "Staff"
+
+  return {
+    id: profile.id,
+    name: profile.fullname || profile.email,
+    email: profile.email,
+    password: "",
+    role,
+    status: "active",
+  }
+}
+
 function useNetworkOnline() {
   const [online, setOnline] = React.useState(true)
   React.useEffect(
@@ -120,6 +138,7 @@ function useNetworkOnline() {
 
 export function AppStoreProvider({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   const toast = useToast()
+  const profile = useAppSelector((reduxState) => reduxState.profile)
   const [state, setState] = React.useState<PersistedState | null>(null)
   // Mirror for synchronous reads inside callbacks (scan returns its result immediately).
   const ref = React.useRef<PersistedState>(seedState())
@@ -166,14 +185,16 @@ export function AppStoreProvider({ children, fallback }: { children: React.React
     return () => clearTimeout(t)
   }, [online, outboxSize, commit, toast])
 
-  const user = USERS.find((u) => u.id === state?.session) ?? null
+  const user = profileUser(profile) ?? USERS.find((u) => u.id === state?.session) ?? null
+  const userRef = React.useRef<User | null>(user)
+  userRef.current = user
   const writable = !!user && canWrite(user.role)
 
   /** Every write goes through here: role check, then the offline queue. */
   const write = React.useCallback(
     (kind: OutboxEntry["kind"], label: string, fn: (s: PersistedState) => PersistedState | null) => {
       const s = ref.current
-      const u = USERS.find((x) => x.id === s.session)
+      const u = userRef.current
       if (!u || !canWrite(u.role)) {
         toast.show("View only. Ask an admin for access.", "error")
         return false
@@ -188,7 +209,7 @@ export function AppStoreProvider({ children, fallback }: { children: React.React
   )
 
   const stageOf = React.useCallback((key: string) => ref.current.progress[key] ?? pipeline(STAGES)[0].status, [])
-  const userName = () => USERS.find((x) => x.id === ref.current.session)?.name ?? ""
+  const userName = () => userRef.current?.name ?? ""
   const eventByKey = (key: string) => EVENTS.find((e) => keyOf(e) === key)!
 
   const setLines = (s: PersistedState, key: string, fn: (l: EventLine[]) => EventLine[]): PersistedState => ({
@@ -345,7 +366,7 @@ export function AppStoreProvider({ children, fallback }: { children: React.React
     }
     const resolveOpname = (id: number, approve: boolean) =>
       write("opname", approve ? "Approve opname" : "Reject opname", (s) => {
-        if (USERS.find((u) => u.id === s.session)?.role !== "Admin") return null
+        if (userRef.current?.role !== "Admin") return null
         const o = s.opnames.find((x) => x.id === id)
         if (!o || o.status !== "Pending") return null
         let next: PersistedState = s

@@ -3,6 +3,7 @@ import * as React from "react"
 import { Alert, ScrollView, Switch, View } from "react-native"
 
 import { fmtDate, stamp } from "../core/format"
+import { useLogout } from "../features/auth/hooks/useLogout"
 import { useAppStore } from "../store"
 import { color, mono, radius, tabular } from "../theme"
 import { Header } from "../ui/domain"
@@ -17,13 +18,19 @@ const ROLE_NOTE = {
 
 export function ProfileScreen() {
   const toast = useToast()
-  const { user, online, outbox, lastSyncAt, forceOffline, setForceOffline, reset, logout, today } = useAppStore()
+  const clearSession = useLogout()
+  const { user, online, outbox, lastSyncAt, forceOffline, setForceOffline, reset, logout: clearLegacySession, today } = useAppStore()
   if (!user) return null
 
-  const signOut = () =>
-    outbox.length > 0
-      ? toast.show(`${outbox.length} changes haven't been sent yet. Wait until you're online before signing out.`, "error")
-      : logout()
+  const signOut = () => {
+    if (outbox.length > 0) {
+      toast.show(`${outbox.length} changes haven't been sent yet. Wait until you're online before signing out.`, "error")
+      return
+    }
+
+    clearLegacySession()
+    clearSession().catch(() => toast.show("Sign out failed. Please try again.", "error"))
+  }
 
   return (
     <View style={{ flex: 1 }}>
