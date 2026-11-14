@@ -1,15 +1,21 @@
 import { CalendarDays, CalendarX2, MapPin, ScanLine } from "lucide-react-native"
 import * as React from "react"
-import { Pressable, ScrollView, View } from "react-native"
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native"
 
-import { fmtNum, fmtRange } from "../../../core/format"
+import { fmtDate, fmtNum, fmtRange } from "../../../core/format"
 import { CLOSING_LABEL } from "../../../core/rules"
-import type { EventView } from "../../../selectors"
 import { color, mono, tabular } from "../../../theme"
 import { ClosingTag, Header, ScanBar } from "../../../ui/domain"
-import { Chip, EmptyState, ListCard, Text } from "../../../ui/primitives"
+import { Button, Chip, EmptyState, Text } from "../../../ui/primitives"
 import { SearchInput } from "../../../ui/SearchInput"
-import type { EventsViewProps } from "../interfaces/eventsView"
+import type { IEventListItemView } from "../interfaces/IEventListItemView"
+import type { IEventsViewProps } from "../interfaces/IEventsViewProps"
 
 export function EventsView({
   greetingName,
@@ -18,60 +24,107 @@ export function EventsView({
   tabs,
   tabCounts,
   events,
+  isInitialLoading,
+  isRefreshing,
+  isFetchingNextPage,
+  errorMessage,
   onQueryChange,
   onTabChange,
   onEventPress,
-}: EventsViewProps) {
+  onRefresh,
+  onRetry,
+  onEndReached,
+}: IEventsViewProps) {
   const hasSearch = query.trim().length > 0
 
   return (
     <View style={{ flex: 1 }}>
       <Header large title="Events" subtitle={`Hi ${greetingName}`} />
       <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
-        <SearchInput value={query} onChangeText={onQueryChange} placeholder="Event, code or city" />
+        <SearchInput
+          value={query}
+          onChangeText={onQueryChange}
+          placeholder="Event, code or city"
+        />
       </View>
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          accessibilityRole="radiogroup"
-          contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 12 }}
-        >
-          {tabs.map((tab) => (
-            <Chip
-              key={tab}
-              label={CLOSING_LABEL[tab]}
-              count={tabCounts[tab]}
-              selected={selectedTab === tab}
-              onPress={() => onTabChange(tab)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        {events.length === 0 ? (
-          <EmptyState
-            icon={CalendarX2}
-            title={
-              hasSearch
-                ? `No match for “${query}”`
-                : `No ${CLOSING_LABEL[selectedTab].toLowerCase()} events`
-            }
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityRole="radiogroup"
+        contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 12 }}
+      >
+        {tabs.map((tab) => (
+          <Chip
+            key={tab}
+            label={CLOSING_LABEL[tab]}
+            count={tabCounts[tab]}
+            selected={selectedTab === tab}
+            onPress={() => onTabChange(tab)}
           />
-        ) : (
-          <ListCard>
-            {events.map((event) => (
-              <EventRow key={event.key} view={event} onPress={() => onEventPress(event.key)} />
-            ))}
-          </ListCard>
-        )}
+        ))}
       </ScrollView>
+
+      {isInitialLoading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={color.brand} />
+          <Text variant="meta" style={{ marginTop: 10 }}>Loading events…</Text>
+        </View>
+      ) : errorMessage && events.length === 0 ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <EmptyState icon={CalendarX2} title="Unable to load events" body={errorMessage} />
+          <Button title="Try again" size="sm" onPress={onRetry} />
+        </View>
+      ) : (
+        <FlatList
+          data={events}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <EventRow view={item} onPress={() => onEventPress(item.id)} />
+          )}
+          ItemSeparatorComponent={EventSeparator}
+          ListEmptyComponent={
+            <EmptyState
+              icon={CalendarX2}
+              title={
+                hasSearch
+                  ? `No match for “${query}”`
+                  : `No ${CLOSING_LABEL[selectedTab].toLowerCase()} events`
+              }
+            />
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <ActivityIndicator color={color.brand} style={{ paddingVertical: 18 }} />
+            ) : null
+          }
+          contentContainerStyle={{
+            paddingBottom: 24,
+            ...(events.length === 0 ? { flexGrow: 1 } : {}),
+          }}
+          style={
+            events.length > 0
+              ? {
+                  marginHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: color.border,
+                  borderRadius: 12,
+                  backgroundColor: color.surface,
+                }
+              : undefined
+          }
+          keyboardShouldPersistTaps="handled"
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.35}
+        />
+      )}
     </View>
   )
 }
 
-function EventRow({ view, onPress }: { view: EventView; onPress: () => void }) {
-  const { event, stage, lines, mode, waiting, tab } = view
+function EventRow({ view, onPress }: { view: IEventListItemView; onPress: () => void }) {
+  const hasStageDetails = view.tab === "on-going" || view.tab === "ready-to-close"
 
   return (
     <Pressable
@@ -83,46 +136,61 @@ function EventRow({ view, onPress }: { view: EventView; onPress: () => void }) {
       ]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text style={{ fontFamily: mono, fontSize: 12, color: color.muted, width: 34 }}>{event.code}</Text>
-        <Text variant="strong" numberOfLines={1} style={{ flex: 1 }}>
-          {event.name}
+        <Text
+          style={{ fontFamily: mono, fontSize: 12, color: color.muted, width: 34 }}
+          numberOfLines={1}
+        >
+          {view.code}
         </Text>
-        {tab !== "on-going" && <ClosingTag tab={tab} />}
+        <Text variant="strong" numberOfLines={1} style={{ flex: 1 }}>{view.name}</Text>
+        {view.tab !== "on-going" && <ClosingTag tab={view.tab} />}
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 42 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <CalendarDays size={13} color={color.faint} />
           <Text variant="meta" style={tabular}>
-            {fmtRange(event.start, event.finish)}
+            {formatEventRange(view.startDate, view.endDate)}
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 }}>
           <MapPin size={13} color={color.faint} />
-          <Text variant="meta" numberOfLines={1}>
-            {event.location}
-          </Text>
+          <Text variant="meta" numberOfLines={1}>{view.location}</Text>
         </View>
       </View>
-      {tab === "on-going" || tab === "ready-to-close" ? (
+      {hasStageDetails ? (
         <View style={{ paddingLeft: 42, gap: 6 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            {mode && <ScanLine size={13} color={color.brand} />}
+            {view.scanMode && <ScanLine size={13} color={color.brand} />}
             <Text
               variant="meta"
-              style={{ color: mode ? color.brandInk : color.ink2, fontWeight: "600", flex: 1 }}
+              style={{
+                color: view.scanMode ? color.brandInk : color.ink2,
+                fontWeight: "600",
+                flex: 1,
+              }}
               numberOfLines={1}
             >
-              {stage.status}
+              {view.stageName}
             </Text>
             <Text variant="meta" style={tabular}>
-              {mode
-                ? `${fmtNum(lines.length - waiting)}/${fmtNum(lines.length)} scanned ${mode}`
-                : `${fmtNum(lines.length)} items`}
+              {view.scanMode
+                ? `${fmtNum(view.scannedItems)}/${fmtNum(view.totalItems)} scanned ${view.scanMode}`
+                : `${fmtNum(view.totalItems)} items`}
             </Text>
           </View>
-          {mode && <ScanBar done={lines.length - waiting} total={lines.length} />}
+          {view.scanMode && <ScanBar done={view.scannedItems} total={view.totalItems} />}
         </View>
       ) : null}
     </Pressable>
   )
+}
+
+function EventSeparator() {
+  return <View style={{ height: 1, backgroundColor: color.border }} />
+}
+
+function formatEventRange(startDate: string, endDate: string): string {
+  if (!startDate) return "—"
+  if (!endDate) return fmtDate(startDate)
+  return fmtRange(startDate, endDate)
 }

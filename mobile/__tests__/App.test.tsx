@@ -69,9 +69,132 @@ beforeEach(() => {
   store.dispatch(clearUserPlan())
   store.dispatch(bootstrapUnauthenticated("missingCredential"))
   setActiveCredential(undefined)
-  jest.spyOn(apiClient, "get").mockResolvedValue({
-    data: USER_PLAN_RESPONSE,
-  } as never)
+  jest.spyOn(apiClient, "get").mockImplementation((url, config) => {
+    if (url === "/v1/user/plan") {
+      return Promise.resolve({ data: USER_PLAN_RESPONSE } as never)
+    }
+
+    if (url === "/v1/event-status/get-all") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "event statuses",
+          data: {
+            page: 1,
+            total_pages: 1,
+            total_records: 1,
+            prev: 1,
+            next: 1,
+            record_per_page: 1,
+            data: [
+              {
+                id: 2,
+                name: "Finish setup",
+                action: "",
+                order_data: 2,
+                active_event: 1,
+              },
+            ],
+          },
+        },
+      } as never)
+    }
+
+    if (url === "/v1/event/4") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "event detail",
+          data: {
+            id: 4,
+            description: "Garden reception",
+            name: "Engagement Rina & Bayu",
+            event_start: "2026-05-17",
+            event_end: "2026-05-18",
+            PIC: "Anto",
+            event_code: "ERB",
+            is_complete: 0,
+            is_finished: 0,
+            status: 2,
+            images: "",
+            address: "Surabaya",
+            type: "Wedding",
+            notes: "Handle with care",
+            date_event: "2026-05-17",
+          },
+        },
+      } as never)
+    }
+
+    if (url === "/v3/fix-list-item-event") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "list item event",
+          data: [
+            {
+              id: 401,
+              scan_out: 0,
+              scan_in: 0,
+              qty: 2,
+              notes: "",
+              event_id: 4,
+              barang_id: 2201,
+              nama_barang: "Tiffany Chair",
+              code: "TC01",
+              satuan: "pcs",
+              area_name: "CEREMONY",
+              event_status_id: 2,
+              sub_list_name: "AISLE",
+              pic: "Anto",
+              ownerships: { ihc: true, ihp: false, outsource: false },
+              package: null,
+              is_new_production_item: false,
+              is_converted: false,
+              converted_qty: 0,
+              broken_item: null,
+            },
+          ],
+        },
+      } as never)
+    }
+
+    const params = config?.params as { status?: string; limit?: number } | undefined
+    const status = params?.status
+    const events =
+      status === "on-going"
+        ? [
+            {
+              id: 4,
+              name: "Engagement Rina & Bayu",
+              event_code: "ERB",
+              event_start: "2026-05-17",
+              event_end: "2026-05-17",
+              date_event: "2026-05-17",
+              address: "Surabaya",
+              status: 2,
+              lifecycle_status: "on-going",
+              total_items: 9,
+            },
+          ]
+        : []
+
+    return Promise.resolve({
+      data: {
+        success: true,
+        message: "events",
+        data: {
+          page: 1,
+          total_pages: 1,
+          total_records: events.length,
+          prev: 1,
+          next: 1,
+          record_per_page: params?.limit ?? 20,
+          data: events,
+        },
+      },
+    } as never)
+  })
 })
 
 afterEach(() => {
@@ -86,6 +209,16 @@ const text = () =>
     .findAll((n) => (n.type as unknown) === "Text")
     .flatMap((n) => n.children.filter((c): c is string => typeof c === "string"))
     .join(" ")
+
+async function flushAsyncWork(cycles = 1) {
+  for (let cycle = 0; cycle < cycles; cycle += 1) {
+    await ReactTestRenderer.act(async () => {
+      jest.runOnlyPendingTimers()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+}
 
 async function renderApp(signIn = true) {
   await AsyncStorage.removeItem(AUTH_STORAGE_KEY)
@@ -138,7 +271,12 @@ test("starts at sign in, then lands on events", async () => {
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
+    jest.runOnlyPendingTimers()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
   })
+  await flushAsyncWork(5)
 
   expect(text()).toContain("Events")
   expect(text()).toContain("Engagement Rina & Bayu")
@@ -151,9 +289,7 @@ test("starts at sign in, then lands on events", async () => {
     planId: USER_PLAN_RESPONSE.data.plan_id,
     planName: USER_PLAN_RESPONSE.data.plan_name,
   })
-  expect(await AsyncStorage.getItem(AUTH_STORAGE_KEY)).toBe(
-    JSON.stringify(STORED_SESSION)
-  )
+  expect(await AsyncStorage.getItem(AUTH_STORAGE_KEY)).toBe(JSON.stringify(STORED_SESSION))
   expect(getActiveCredential()).toEqual(CREDENTIAL)
 })
 
@@ -188,9 +324,7 @@ test("restores the saved session and removes it on sign out", async () => {
 })
 
 const routes: [keyof RootStackParamList, object | undefined, string][] = [
-  ["EventDetail", { eventKey: key("PPK") }, "Waiting scan in"],
-  ["EventDetail", { eventKey: key("HFB") }, "Finalize"],
-  ["EventDetail", { eventKey: key("BSA") }, "View only"],
+  ["EventDetail", { eventKey: "4" }, "Engagement Rina & Bayu"],
   ["EventDetail", { eventKey: "nope" }, "Not found"],
   ["Scanner", { eventKey: key("PPK") }, "SCAN IN"],
   ["Scanner", { eventKey: key("RSM") }, "SCAN OUT"],
@@ -208,7 +342,28 @@ test.each(routes)("opens %s %j", async (name, params, expected) => {
     navigationRef.navigate(name as never, params as never)
     jest.runOnlyPendingTimers()
   })
+  await flushAsyncWork(3)
   expect(text()).toContain(expected)
+})
+
+test("loads event detail and event items from the backend", async () => {
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("EventDetail", { eventKey: "4" })
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(3)
+
+  expect(text()).toContain("Tiffany Chair")
+  expect(text()).toContain("CEREMONY")
+  expect(apiClient.get).toHaveBeenCalledWith("/v1/event/4", expect.objectContaining({ signal: expect.anything() }))
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v3/fix-list-item-event",
+    expect.objectContaining({
+      params: { event_id: 4, order: "asc" },
+      signal: expect.anything(),
+    })
+  )
 })
 
 const tabs = [

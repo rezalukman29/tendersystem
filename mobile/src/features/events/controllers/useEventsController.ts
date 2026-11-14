@@ -1,81 +1,111 @@
 import * as React from "react"
 
 import type { ClosingTab } from "../../../core/rules"
+import { useEventLifecycleCounts } from "../../../hooks/api/useEventLifecycleCounts"
+import { useEventStatuses } from "../../../hooks/api/useEventStatuses"
+import { useInfiniteEvents } from "../../../hooks/api/useInfiniteEvents"
 import { useNav } from "../../../navigation"
-import { eventView } from "../../../selectors"
-import { useAppStore } from "../../../store"
-import type { EventsViewProps } from "../interfaces/eventsView"
+import { useAppSelector } from "../../../redux/hooks"
+import { EVENT_TABS } from "../constants/eventTabs"
+import type { IEventsViewProps } from "../interfaces/IEventsViewProps"
+import { toEventListItem } from "../presenters/toEventListItem"
 
-const TABS: readonly ClosingTab[] = [
-  "on-going",
-  "upcoming",
-  "ready-to-close",
-  "checking-inventory",
-  "returned-completed",
-  "transferred",
-]
+const EVENT_PAGE_SIZE = 20
+const SEARCH_DEBOUNCE_MS = 350
 
-export function useEventsController(): EventsViewProps {
+export function useEventsController(): IEventsViewProps {
   const navigation = useNav()
-  const store = useAppStore()
+  const profile = useAppSelector((state) => state.profile)
   const [selectedTab, setSelectedTab] = React.useState<ClosingTab>("on-going")
   const [query, setQuery] = React.useState("")
+  const deferredQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
 
-  const allEvents = React.useMemo(
-    () =>
-      store.events
-        .map((event) => eventView(event, store, store.stages))
-        .sort((a, b) => a.event.date.localeCompare(b.event.date)),
-    [store]
-  )
+  const eventsQuery = useInfiniteEvents({
+    lifecycleStatus: selectedTab,
+    search: deferredQuery || undefined,
+    sortBy: "date_event",
+    sort: "ASC",
+    limit: EVENT_PAGE_SIZE,
+  })
+  const statusesQuery = useEventStatuses()
+  const countsQuery = useEventLifecycleCounts(deferredQuery)
 
-  const tabCounts = React.useMemo(
+  const statusMap = React.useMemo(
     () =>
-      TABS.reduce<Record<ClosingTab, number>>(
-        (counts, tab) => ({
-          ...counts,
-          [tab]: allEvents.filter((event) => event.tab === tab).length,
-        }),
-        {
-          "on-going": 0,
-          upcoming: 0,
-          "ready-to-close": 0,
-          "checking-inventory": 0,
-          "returned-completed": 0,
-          transferred: 0,
-        }
+      new Map(
+        (statusesQuery.data ?? []).map((status) => [status.id, status] as const)
       ),
-    [allEvents]
+    [statusesQuery.data]
   )
 
   const events = React.useMemo(() => {
-    const search = query.trim().toLowerCase()
-
-    return allEvents
-      .filter((event) => event.tab === selectedTab)
-      .filter(
-        ({ event }) =>
-          !search ||
-          `${event.name} ${event.code} ${event.location}`
-            .toLowerCase()
-            .includes(search)
-      )
-  }, [allEvents, query, selectedTab])
+    const uniqueEvents = new Map<number, ReturnType<typeof toEventListItem>>()
+    for (const page of eventsQuery.data?.pages ?? []) {
+      for (const event of page.items) {
+        uniqueEvents.set(event.id, toEventListItem(event, selectedTab, statusMap))
+      }
+    }
+    return [...uniqueEvents.values()]
+  }, [eventsQuery.data?.pages, selectedTab, statusMap])
 
   const onEventPress = React.useCallback(
-    (eventKey: string) => navigation.navigate("EventDetail", { eventKey }),
+    (eventId: number) =>
+      navigation.navigate("EventDetail", { eventKey: String(eventId) }),
     [navigation]
   )
 
+  const onEndReached = React.useCallback(() => {
+    if (eventsQuery.hasNextPage && !eventsQuery.isFetchingNextPage) {
+      eventsQuery.fetchNextPage().catch(() => undefined)
+    }
+  }, [eventsQuery])
+
+  const onRefresh = React.useCallback(() => {
+    Promise.all([
+      eventsQuery.refetch(),
+      statusesQuery.refetch(),
+      countsQuery.refetch(),
+    ]).catch(() => undefined)
+  }, [countsQuery, eventsQuery, statusesQuery])
+
+  const onRetry = React.useCallback(() => {
+    Promise.all([eventsQuery.refetch(), statusesQuery.refetch()]).catch(
+      () => undefined
+    )
+  }, [eventsQuery, statusesQuery])
+
+  const error = eventsQuery.error ?? statusesQuery.error
+
   return {
-    greetingName: store.user?.name.split(" ")[0] ?? "",
+    greetingName: profile.fullname.split(" ").filter(Boolean)[0] ?? "",
     query,
     selectedTab,
-    tabs: TABS,
-    tabCounts,
+    tabs: EVENT_TABS,
+    tabCounts: countsQuery.counts,
     events,
+    isInitialLoading:
+      (eventsQuery.isPending || statusesQuery.isPending) && events.length === 0,
+    isRefreshing:
+      (eventsQuery.isRefetching || statusesQuery.isRefetching) &&
+      !eventsQuery.isFetchingNextPage,
+    isFetchingNextPage: eventsQuery.isFetchingNextPage,
+    errorMessage: error?.message,
     onQueryChange: setQuery,
     onTabChange: setSelectedTab,
     onEventPress,
+    onRefresh,
+    onRetry,
+    onEndReached,
   }
+}
+
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = React.useState(value)
+
+  React.useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(timeout)
+  }, [delay, value])
+
+  return debouncedValue
 }

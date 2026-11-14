@@ -1,5 +1,11 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { NavigationContainer, DefaultTheme, createNavigationContainerRef, useNavigation, type NavigatorScreenParams } from "@react-navigation/native"
+import {
+  NavigationContainer,
+  DefaultTheme,
+  createNavigationContainerRef,
+  useNavigation,
+  type NavigatorScreenParams,
+} from "@react-navigation/native"
 import { createNativeStackNavigator, type NativeStackNavigationProp } from "@react-navigation/native-stack"
 import { Boxes, CalendarRange, CircleUserRound, ClipboardCheck, ScanLine, type LucideIcon } from "lucide-react-native"
 import * as React from "react"
@@ -7,8 +13,8 @@ import { Text, View } from "react-native"
 
 import { EventsScreen } from "./features/events/screens/EventsScreen"
 import { LoginScreen } from "./features/auth/screens/LoginScreen"
+import { EventDetailScreen } from "./features/eventDetail/screens/EventDetailScreen"
 import { useAppSelector } from "./redux/hooks"
-import { EventDetailScreen } from "./screens/EventDetail"
 import { ItemDetailScreen } from "./screens/ItemDetail"
 import { OpnameScreen } from "./screens/Opname"
 import { OpnameCountScreen } from "./screens/OpnameCount"
@@ -50,7 +56,14 @@ const Tab = createBottomTabNavigator<TabParamList>()
 
 const theme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: color.ground, primary: color.brand, card: color.surface, border: color.border, text: color.ink },
+  colors: {
+    ...DefaultTheme.colors,
+    background: color.ground,
+    primary: color.brand,
+    card: color.surface,
+    border: color.border,
+    text: color.ink,
+  },
 }
 
 function tabIcon(Icon: LucideIcon, badge?: number) {
@@ -103,9 +116,7 @@ function Tabs() {
 }
 
 export function RootNavigator() {
-  const isAuthenticated = useAppSelector(
-    (state) => state.session.status === "authenticated"
-  )
+  const isAuthenticated = useAppSelector((state) => state.session.status === "authenticated")
   return (
     <NavigationContainer ref={navigationRef} theme={theme}>
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.ground } }}>
@@ -119,7 +130,11 @@ export function RootNavigator() {
             <Stack.Screen name="Rentals" component={RentalsScreen} />
             <Stack.Screen name="OpnameDetail" component={OpnameDetailScreen} />
             <Stack.Screen name="OpnameCount" component={OpnameCountScreen} options={{ gestureEnabled: false }} />
-            <Stack.Screen name="Scanner" component={ScannerScreen} options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+            <Stack.Screen
+              name="Scanner"
+              component={ScannerScreen}
+              options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+            />
           </>
         )}
       </Stack.Navigator>
