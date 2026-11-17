@@ -126,6 +126,114 @@ beforeEach(() => {
       } as never)
     }
 
+    if (url === "/v1/gudang") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "get all gudang",
+          data: {
+            page: 1,
+            total_pages: 1,
+            total_records: 1,
+            record_per_page: 1000,
+            data: [{ id: 2, nama: "Warehouse 70", lokasi: "Bali" }],
+          },
+        },
+      } as never)
+    }
+
+    if (url === "/v1/barang-gudang/detail") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "get warehouse inventory",
+          data: {
+            page: 1,
+            total_pages: 1,
+            total_records: 2,
+            record_per_page: 99999,
+            data: [
+              {
+                barang_gudang_id: 68,
+                gudang_id: 2,
+                barang_id: 12,
+                stok_gudang: 20,
+                kode_gudang: "WH-68",
+                stok_minimum: 1,
+                nama_barang: "Table candle holder",
+                stok_barang: 20,
+                nama_satuan: "pcs",
+                gudang_name: "Warehouse 70",
+                stock_used: 0,
+                valuation: "10000",
+                status: "SAFE",
+                kode_barang: "ITEM-68",
+                gudang: { gudang_id: 2, gudang_name: "Warehouse 70" },
+              },
+              {
+                barang_gudang_id: 69,
+                gudang_id: 2,
+                barang_id: 13,
+                stok_gudang: 5,
+                kode_gudang: "WH-69",
+                stok_minimum: 1,
+                nama_barang: "Napkin ring",
+                stok_barang: 5,
+                nama_satuan: "pcs",
+                gudang_name: "Warehouse 70",
+                stock_used: 0,
+                valuation: "5000",
+                status: "SAFE",
+                kode_barang: "ITEM-69",
+                gudang: { gudang_id: 2, gudang_name: "Warehouse 70" },
+              },
+            ],
+          },
+        },
+      } as never)
+    }
+
+    if (url === "/v1/stock-opname") {
+      return Promise.resolve({
+        data: {
+          success: true,
+          message: "get stock opname",
+          data: {
+            page: 1,
+            total_pages: 1,
+            total_records: 1,
+            record_per_page: 20,
+            data: [
+              {
+                id: 25,
+                period: "Nov 2026",
+                remark: "Monthly check",
+                flag: "done",
+                created_at: "2026-11-17 11:16:41",
+                userId: 8,
+                data: [
+                  {
+                    id: 68,
+                    stock_new: 19,
+                    stock_old: 20,
+                    comparison: "95%",
+                    condition: "POOR",
+                    notes: "",
+                    barang: {
+                      nama: "Table candle holder",
+                      gudang_id: 2,
+                      gudang_name: "Warehouse 70",
+                      photo: "",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      } as never)
+    }
+
     if (url === "/v3/fix-list-item-event") {
       return Promise.resolve({
         data: {
@@ -368,7 +476,7 @@ test("loads event detail and event items from the backend", async () => {
 
 const tabs = [
   ["ScanPicker", "At a scan stage"],
-  ["Stock", "Asset value"],
+  ["Stock", "Total items"],
   ["Opname", "Count a warehouse"],
   ["Profile", "Offline test mode"],
 ] as const
@@ -380,4 +488,100 @@ test.each(tabs)("opens the %s tab", async (tab, expected) => {
     jest.runOnlyPendingTimers()
   })
   expect(text()).toContain(expected)
+})
+
+test("loads warehouse options and opname history from the API", async () => {
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("Tabs", { screen: "Opname" })
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(4)
+
+  expect(text()).toContain("Warehouse 70")
+  expect(text()).toContain("Bali")
+  expect(text()).toContain("0 rows")
+  expect(text()).toContain("#25")
+  expect(text()).toContain("Approved")
+  expect(text()).toContain("Rp0")
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v1/gudang",
+    expect.objectContaining({ params: { page: 1, limit: 1000 }, signal: expect.anything() })
+  )
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v1/stock-opname",
+    expect.objectContaining({ params: { page: 1, limit: 20 }, signal: expect.anything() })
+  )
+})
+
+test("counts warehouse inventory and submits only the changed rows", async () => {
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("Tabs", { screen: "Opname" })
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(4)
+
+  await ReactTestRenderer.act(async () => {
+    const warehouse = tree.root.find(
+      (node) => node.props.accessibilityLabel === "Count items in Warehouse 70"
+    )
+    warehouse.props.onPress()
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(4)
+
+  expect(text()).toContain("Table candle holder")
+  expect(text()).toContain("System")
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v1/barang-gudang/detail",
+    expect.objectContaining({
+      params: {
+        page: 1,
+        limit: 99999,
+        gudang_id: 2,
+        sort: "ASC",
+        sort_by: "name",
+      },
+      signal: expect.anything(),
+    })
+  )
+
+  const post = jest.spyOn(apiClient, "post").mockResolvedValueOnce({
+    data: { success: true, message: "created stock opname", data: { id: 76 } },
+  } as never)
+
+  await ReactTestRenderer.act(async () => {
+    const increment = tree.root.find(
+      (node) => node.props.accessibilityLabel === "More Actual Table candle holder"
+    )
+    increment.props.onPress()
+  })
+  await ReactTestRenderer.act(async () => {
+    const submit = tree.root.find(
+      (node) => node.props.accessibilityLabel === "Submit" && node.props.onPress
+    )
+    submit.props.onPress()
+  })
+  await ReactTestRenderer.act(async () => {
+    tree.root.find((node) => node.props.accessibilityLabel === "Period").props.onChangeText("Nov 2026")
+    tree.root.find((node) => node.props.accessibilityLabel === "Remark").props.onChangeText("Monthly count")
+  })
+  await ReactTestRenderer.act(async () => {
+    tree.root.find((node) => node.props.accessibilityLabel === "Submit for approval").props.onPress()
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(8)
+
+  expect(post).toHaveBeenCalledWith("/v1/stock-opname", {
+    period: "Nov 2026",
+    remark: "Monthly count",
+    data: [{ condition: "GOOD", id: 68, notes: "", stok: 21 }],
+  })
+  expect(text()).toContain("History · 1")
+  expect(
+    (apiClient.get as jest.Mock).mock.calls.filter(
+      ([url, config]) => url === "/v1/stock-opname" && config?.params?.limit === 20
+    ).length
+  ).toBeGreaterThan(1)
 })

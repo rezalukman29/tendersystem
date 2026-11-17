@@ -14,16 +14,17 @@ import { Text, View } from "react-native"
 import { EventsScreen } from "./features/events/screens/EventsScreen"
 import { LoginScreen } from "./features/auth/screens/LoginScreen"
 import { EventDetailScreen } from "./features/eventDetail/screens/EventDetailScreen"
+import { StockScreen } from "./features/stock/screens/StockScreen"
 import { useAppSelector } from "./redux/hooks"
 import { ItemDetailScreen } from "./screens/ItemDetail"
 import { OpnameScreen } from "./screens/Opname"
 import { OpnameCountScreen } from "./screens/OpnameCount"
 import { OpnameDetailScreen } from "./screens/OpnameDetail"
+import type { IStockOpname } from "./entities/interfaces/stock/IStockOpname"
 import { ProfileScreen } from "./screens/Profile"
 import { RentalsScreen } from "./screens/Rentals"
 import { ScannerScreen } from "./screens/Scanner"
 import { ScanPickerScreen } from "./screens/ScanPicker"
-import { StockScreen } from "./screens/Stock"
 import { useAppStore } from "./store"
 import { color } from "./theme"
 
@@ -42,8 +43,8 @@ export type RootStackParamList = {
   Scanner: { eventKey: string }
   ItemDetail: { name: string }
   Rentals: undefined
-  OpnameCount: { warehouse: string }
-  OpnameDetail: { id: number }
+  OpnameCount: { warehouse: string; warehouseId: number }
+  OpnameDetail: { id: number; opname?: IStockOpname }
 }
 
 export type Nav = NativeStackNavigationProp<RootStackParamList>

@@ -327,7 +327,7 @@ export function MetaRow({ children, style }: { children: React.ReactNode; style?
 /** A figure with its label under it, for summary strips. */
 export function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
-    <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 12 }}>
+    <View style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
       <Text style={[{ fontSize: 20, fontWeight: "600", color: tone ?? color.ink, letterSpacing: -0.3 }, tabular]}>{value}</Text>
       <Text variant="tiny">{label}</Text>
     </View>

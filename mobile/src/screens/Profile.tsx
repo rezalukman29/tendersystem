@@ -1,8 +1,8 @@
-import { Cloud, CloudOff, LogOut, RotateCcw } from "lucide-react-native"
+import { Cloud, CloudOff, LogOut } from "lucide-react-native"
 import * as React from "react"
-import { Alert, ScrollView, Switch, View } from "react-native"
+import { ScrollView, Switch, View } from "react-native"
 
-import { fmtDate, stamp } from "../core/format"
+import { stamp } from "../core/format"
 import { useLogout } from "../features/auth/hooks/useLogout"
 import { useAppStore } from "../store"
 import { color, mono, radius, tabular } from "../theme"
@@ -19,7 +19,7 @@ const ROLE_NOTE = {
 export function ProfileScreen() {
   const toast = useToast()
   const clearSession = useLogout()
-  const { user, online, outbox, lastSyncAt, forceOffline, setForceOffline, reset, logout: clearLegacySession, today } = useAppStore()
+  const { user, online, outbox, lastSyncAt, forceOffline, setForceOffline, logout: clearLegacySession } = useAppStore()
   if (!user) return null
 
   const signOut = () => {
@@ -92,31 +92,11 @@ export function ProfileScreen() {
           </View>
         </ListCard>
 
-        <SectionLabel>Demo</SectionLabel>
         <View style={{ paddingHorizontal: 16, gap: 8 }}>
-          <Text variant="tiny">{`Demo date is fixed at ${fmtDate(today)}, like the web.`}</Text>
-          <Button
-            variant="outline"
-            icon={RotateCcw}
-            title="Reset demo data"
-            onPress={() =>
-              Alert.alert("Reset demo data?", "Scans, reports, counts and stage moves made on this phone are lost.", [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Reset",
-                  style: "destructive",
-                  onPress: () => {
-                    reset()
-                    toast.show("Demo data restored", "success")
-                  },
-                },
-              ])
-            }
-          />
           <Button variant="ghost" icon={LogOut} title="Sign out" onPress={signOut} />
         </View>
         <Text variant="tiny" style={{ textAlign: "center", paddingTop: 24 }}>
-          EMI mobile · v0.4 · React Native
+          EMI mobile · v0.4
         </Text>
       </ScrollView>
     </View>

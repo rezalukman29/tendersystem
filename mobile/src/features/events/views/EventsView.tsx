@@ -50,6 +50,7 @@ export function EventsView({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, flexShrink: 0 }}
         accessibilityRole="radiogroup"
         contentContainerStyle={{ gap: 6, paddingHorizontal: 16, paddingBottom: 12 }}
       >
@@ -101,8 +102,9 @@ export function EventsView({
             paddingBottom: 24,
             ...(events.length === 0 ? { flexGrow: 1 } : {}),
           }}
-          style={
-            events.length > 0
+          style={{
+            flex: 1,
+            ...(events.length > 0
               ? {
                   marginHorizontal: 16,
                   borderWidth: 1,
@@ -110,8 +112,8 @@ export function EventsView({
                   borderRadius: 12,
                   backgroundColor: color.surface,
                 }
-              : undefined
-          }
+              : {}),
+          }}
           keyboardShouldPersistTaps="handled"
           refreshing={isRefreshing}
           onRefresh={onRefresh}
