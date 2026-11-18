@@ -137,7 +137,9 @@ export function ProfilePage() {
           Sign out
         </Button>
       </div>
-      <p className="px-4 pt-6 pb-4 text-center text-[12px] text-muted-foreground">Kru · v0.2 demo</p>
+      <p className="px-4 pt-6 pb-4 text-center text-[12px] text-muted-foreground tabular">
+        Kru · v{__APP_VERSION__} · build {__APP_BUILD_DATE__}
+      </p>
 
       <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
         <DialogContent>
