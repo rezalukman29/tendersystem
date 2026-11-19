@@ -4,6 +4,7 @@ import { apiClient } from "../../api/client"
 import type { IGetEventsRequestParams } from "../../entities/api/params/IGetEventsRequestParams"
 import type { IGetEventStatusesRequestParams } from "../../entities/api/params/IGetEventStatusesRequestParams"
 import type { IGetEventItemsRequestParams } from "../../entities/api/params/IGetEventItemsRequestParams"
+import type { IScanEventItemRequest } from "../../entities/api/request/IScanEventItemRequest"
 import type { IEventDetailResponse } from "../../entities/api/response/IEventDetailResponse"
 import type { IEventItemResponse } from "../../entities/api/response/IEventItemResponse"
 import type { IEventResponse } from "../../entities/api/response/IEventResponse"
@@ -11,6 +12,11 @@ import type { IEventStatusResponse } from "../../entities/api/response/IEventSta
 import type { ApiResponse, PaginatedData } from "../../interfaces/api"
 
 export class EventsRepositories {
+  async scanEventItem(payload: IScanEventItemRequest): Promise<ApiResponse<unknown>> {
+    const response = await apiClient.put<ApiResponse<unknown>>("/v1/fix-list-item/scan", payload)
+    return response.data
+  }
+
   async getEventDetail(eventId: number, signal?: AbortSignal): Promise<ApiResponse<IEventDetailResponse>> {
     const response = await apiClient.get<ApiResponse<IEventDetailResponse>>(`/v1/event/${eventId}`, { signal })
     return response.data

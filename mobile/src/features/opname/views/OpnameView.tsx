@@ -107,7 +107,6 @@ function WarehouseRow({
   warehouse: IWarehouse
   onPress: (warehouse: IWarehouse) => void
 }) {
-  const rows = 0
   return (
     <Pressable
       accessibilityRole="button"
@@ -129,7 +128,7 @@ function WarehouseRow({
           </Text>
         )}
       </View>
-      <Text variant="meta" style={tabular}>{`${fmtNum(rows)} rows`}</Text>
+      <Text variant="meta" style={tabular}>{`${fmtNum(warehouse.totalItems)} rows`}</Text>
       <ChevronRight size={16} color={color.faint} />
     </Pressable>
   )

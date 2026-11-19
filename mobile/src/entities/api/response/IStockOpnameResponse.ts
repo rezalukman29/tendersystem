@@ -7,5 +7,6 @@ export interface IStockOpnameResponse {
   flag: string
   created_at: string
   userId: number
+  valuation?: number
   data: IStockOpnameItemResponse[]
 }

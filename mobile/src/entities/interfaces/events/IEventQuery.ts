@@ -1,7 +1,8 @@
 import type { ClosingTab } from "../../../core/rules"
 
 export interface IEventQuery {
-  lifecycleStatus: ClosingTab
+  lifecycleStatus?: ClosingTab
+  statusIds?: number[]
   search?: string
   sortBy?: string
   sort?: "ASC" | "DESC"

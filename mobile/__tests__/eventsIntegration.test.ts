@@ -5,6 +5,47 @@ import type { IEventStatus } from "../src/entities/interfaces/events/IEventStatu
 import { toEventListItem } from "../src/features/events/presenters/toEventListItem"
 
 describe("event list integration", () => {
+  it("serializes scan status IDs as a comma-separated filter", async () => {
+    const getEvents = jest.fn().mockResolvedValue({
+      success: true,
+      message: "events",
+      data: {
+        page: 1,
+        total_pages: 1,
+        total_records: 0,
+        record_per_page: 10,
+        data: [],
+      },
+    })
+    const repository = {
+      getEvents,
+      getEventStatuses: jest.fn(),
+      getEventDetail: jest.fn(),
+      getEventItems: jest.fn(),
+    } as unknown as EventsRepositories
+    const service = new EventsServices(repository)
+
+    await service.getEvents({
+      statusIds: [4, 6],
+      page: 1,
+      limit: 10,
+      sort: "DESC",
+      sortBy: "date_event",
+    })
+
+    expect(getEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status_id: "4,6",
+        sort_by: "date_event",
+        sort: "DESC",
+        page: 1,
+        limit: 10,
+      }),
+      undefined
+    )
+    expect(getEvents.mock.calls[0][0]).not.toHaveProperty("status")
+  })
+
   it("maps paginated event transport data and uses a page size of 20", async () => {
     const getEvents = jest.fn().mockResolvedValue({
       success: true,
@@ -28,6 +69,8 @@ describe("event list integration", () => {
             status: 4,
             lifecycle_status: "on-going",
             total_items: 8,
+            scan_in_total: 2,
+            scan_out_total: 6,
           },
         ],
       },
@@ -57,6 +100,8 @@ describe("event list integration", () => {
         code: "MCR",
         location: "Jakarta",
         totalItems: 8,
+        scanInTotal: 2,
+        scanOutTotal: 6,
       })
     )
   })
@@ -142,6 +187,18 @@ describe("event list integration", () => {
     )
   })
 
+  it("submits a scan using the backend item scan contract", async () => {
+    const scanEventItem = jest.fn().mockResolvedValue({
+      success: true,
+      message: "Scan saved",
+      data: null,
+    })
+    const service = new EventsServices({ scanEventItem } as unknown as EventsRepositories)
+
+    await expect(service.scanEventItem({ id: 401, type: "IN" })).resolves.toBe("Scan saved")
+    expect(scanEventItem).toHaveBeenCalledWith({ id: 401, type: "IN" })
+  })
+
   it("uses status action for scan mode and the status name for the stage", () => {
     const event: IEvent = {
       id: 92,
@@ -153,6 +210,8 @@ describe("event list integration", () => {
       statusId: 4,
       lifecycleStatus: "on-going",
       totalItems: 8,
+      scanInTotal: 2,
+      scanOutTotal: 6,
     }
     const status: IEventStatus = {
       id: 4,
@@ -166,8 +225,12 @@ describe("event list integration", () => {
 
     expect(view.stageName).toBe("Waiting scan out")
     expect(view.scanMode).toBe("out")
-    expect(view.scannedItems).toBe(8)
+    expect(view.scannedItems).toBe(6)
     expect(view.totalItems).toBe(8)
+
+    const scanInStatus = { ...status, action: "SCAN_IN" }
+    const scanInView = toEventListItem(event, "on-going", new Map([[scanInStatus.id, scanInStatus]]))
+    expect(scanInView.scannedItems).toBe(2)
   })
 
   it("uses the backend status name when the action is not a scan", () => {
@@ -181,6 +244,8 @@ describe("event list integration", () => {
       statusId: 2,
       lifecycleStatus: "on-going",
       totalItems: 5,
+      scanInTotal: 0,
+      scanOutTotal: 0,
     }
     const status: IEventStatus = {
       id: 2,

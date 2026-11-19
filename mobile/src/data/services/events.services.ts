@@ -3,6 +3,7 @@ import type { IEventResponse } from "../../entities/api/response/IEventResponse"
 import type { IEventStatusResponse } from "../../entities/api/response/IEventStatusResponse"
 import type { IEventDetailResponse } from "../../entities/api/response/IEventDetailResponse"
 import type { IEventItemResponse } from "../../entities/api/response/IEventItemResponse"
+import type { IScanEventItemRequest } from "../../entities/api/request/IScanEventItemRequest"
 import type { IEvent } from "../../entities/interfaces/events/IEvent"
 import type { IEventDetail } from "../../entities/interfaces/events/IEventDetail"
 import type { IEventItem } from "../../entities/interfaces/events/IEventItem"
@@ -29,7 +30,8 @@ export class EventsServices {
     try {
       const response = await this.repository.getEvents(
         {
-          status: query.lifecycleStatus,
+          ...(query.lifecycleStatus ? { status: query.lifecycleStatus } : {}),
+          ...(query.statusIds?.length ? { status_id: query.statusIds.join(",") } : {}),
           search: query.search || undefined,
           sort_by: query.sortBy ?? "date_event",
           sort: query.sort ?? "ASC",
@@ -51,6 +53,20 @@ export class EventsServices {
         totalPages: response.data.total_pages,
         totalRecords: response.data.total_records,
       }
+    } catch (error) {
+      throw new ApiError(error)
+    }
+  }
+
+  async scanEventItem(payload: IScanEventItemRequest): Promise<string> {
+    try {
+      const response = await this.repository.scanEventItem(payload)
+      if (!response.success) {
+        throw new ApiError(response.message || "Failed to scan event item", {
+          code: response.code,
+        })
+      }
+      return response.message
     } catch (error) {
       throw new ApiError(error)
     }
@@ -113,6 +129,7 @@ export class EventsServices {
     const eventDate = readNullableString(item.date_event) || readNullableString(item.event_start) || readNullableString(item.event_end)
     const startDate = readNullableString(item.event_start) || eventDate
     const endDate = readNullableString(item.event_end) || startDate
+    const totalItems = Math.max(0, item.total_items ?? 0)
 
     return {
       id: item.id,
@@ -123,7 +140,9 @@ export class EventsServices {
       location: readNullableString(item.address) || "—",
       statusId: item.status,
       lifecycleStatus,
-      totalItems: Math.max(0, item.total_items ?? 0),
+      totalItems,
+      scanInTotal: Math.max(0, item.scan_in_total ?? 0),
+      scanOutTotal: Math.max(0, item.scan_out_total ?? 0),
     }
   }
 

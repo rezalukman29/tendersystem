@@ -21,8 +21,7 @@ export function toEventListItem(
     tab,
     stageName: status?.name || "Status unavailable",
     scanMode,
-    // Temporary BE fallback: scan counters are not available yet.
-    scannedItems: scanMode ? event.totalItems : 0,
+    scannedItems: scanMode === "in" ? event.scanInTotal : scanMode === "out" ? event.scanOutTotal : 0,
     totalItems: event.totalItems,
   }
 }

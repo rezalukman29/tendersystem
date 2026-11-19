@@ -176,6 +176,7 @@ export class StockServices {
       id: item.id,
       name: item.nama,
       ...(item.lokasi !== null && item.lokasi !== undefined ? { location: item.lokasi } : {}),
+      totalItems: Math.max(0, item.total_items ?? 0),
     }
   }
 
@@ -207,7 +208,7 @@ export class StockServices {
       appliedBy: String(record.userId),
       warehouse,
       countedCount: items.length,
-      amount: 0,
+      amount: record.valuation ?? 0,
       status: flag === "draft" ? "Pending" : "Approved",
       items,
     }
@@ -243,6 +244,7 @@ function isStockOpnameResponse(value: unknown): value is IStockOpnameListRespons
     isString(value.flag) &&
     isString(value.created_at) &&
     isFiniteNumber(value.userId) &&
+    (value.valuation === undefined || isFiniteNumber(value.valuation)) &&
     Array.isArray(value.data) &&
     value.data.every(isStockOpnameItemResponse)
   )

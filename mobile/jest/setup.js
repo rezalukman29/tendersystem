@@ -4,12 +4,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 jest.mock('@react-native-community/netinfo', () => require('@react-native-community/netinfo/jest/netinfo-mock.js'));
-jest.mock('react-native-vision-camera', () => ({
-  Camera: () => null,
-  useCameraDevice: () => undefined,
-  useCameraPermission: () => ({hasPermission: false, requestPermission: jest.fn(async () => false)}),
-  useCodeScanner: config => config,
-}));
+jest.mock('react-native-vision-camera', () => {
+  const React = require('react');
+  const {View} = require('react-native');
+  return {
+    Camera: ({codeScanner}) =>
+      React.createElement(View, {
+        testID: 'scanner-camera',
+        onCodeScanned: codeScanner.onCodeScanned,
+      }),
+    useCameraDevice: () => ({id: 'back-camera', position: 'back'}),
+    useCameraPermission: () => ({hasPermission: true, requestPermission: jest.fn(async () => true)}),
+    useCodeScanner: config => config,
+  };
+});
 jest.mock('react-native-image-picker', () => ({
   launchCamera: jest.fn(async () => ({didCancel: true})),
   launchImageLibrary: jest.fn(async () => ({didCancel: true})),

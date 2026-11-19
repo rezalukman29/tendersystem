@@ -5,7 +5,6 @@ import ReactTestRenderer from "react-test-renderer"
 import App from "../App"
 import { apiClient } from "../src/api/client"
 import { queryClient } from "../src/api/queryClient"
-import { EVENTS, keyOf } from "../src/core/seed"
 import { AUTH_STORAGE_KEY } from "../src/data/auth/credentialStore"
 import { getActiveCredential, setActiveCredential } from "../src/data/auth/activeCredential"
 import { navigationRef, type RootStackParamList } from "../src/navigation"
@@ -17,6 +16,7 @@ import { clearUserPlan } from "../src/redux/userPlanSlice"
 jest.useFakeTimers()
 
 let tree: ReactTestRenderer.ReactTestRenderer
+let scannedItemIds = new Set<number>()
 
 const PROFILE = {
   id: 2,
@@ -64,6 +64,7 @@ const USER_PLAN_RESPONSE = {
 
 beforeEach(() => {
   jest.restoreAllMocks()
+  scannedItemIds = new Set()
   queryClient.clear()
   store.dispatch(clearProfile())
   store.dispatch(clearUserPlan())
@@ -82,16 +83,30 @@ beforeEach(() => {
           data: {
             page: 1,
             total_pages: 1,
-            total_records: 1,
+            total_records: 3,
             prev: 1,
             next: 1,
-            record_per_page: 1,
+            record_per_page: 3,
             data: [
               {
                 id: 2,
                 name: "Finish setup",
-                action: "",
+                action: "SCAN_IN",
                 order_data: 2,
+                active_event: 1,
+              },
+              {
+                id: 3,
+                name: "Waiting scan out",
+                action: "SCAN_OUT",
+                order_data: 3,
+                active_event: 1,
+              },
+              {
+                id: 4,
+                name: "No scan",
+                action: "",
+                order_data: 4,
                 active_event: 1,
               },
             ],
@@ -136,7 +151,7 @@ beforeEach(() => {
             total_pages: 1,
             total_records: 1,
             record_per_page: 1000,
-            data: [{ id: 2, nama: "Warehouse 70", lokasi: "Bali" }],
+            data: [{ id: 2, nama: "Warehouse 70", lokasi: "Bali", total_items: 1889 }],
           },
         },
       } as never)
@@ -211,6 +226,7 @@ beforeEach(() => {
                 flag: "done",
                 created_at: "2026-11-17 11:16:41",
                 userId: 8,
+                valuation: 250000,
                 data: [
                   {
                     id: 68,
@@ -243,13 +259,14 @@ beforeEach(() => {
             {
               id: 401,
               scan_out: 0,
-              scan_in: 0,
+              scan_in: scannedItemIds.has(401) ? 1 : 0,
               qty: 2,
               notes: "",
               event_id: 4,
               barang_id: 2201,
               nama_barang: "Tiffany Chair",
               code: "TC01",
+              photo: "uploads/1/2026-01/tiffany-chair.jpg",
               satuan: "pcs",
               area_name: "CEREMONY",
               event_status_id: 2,
@@ -267,10 +284,41 @@ beforeEach(() => {
       } as never)
     }
 
-    const params = config?.params as { status?: string; limit?: number } | undefined
+    const params = config?.params as { status?: string; status_id?: string; limit?: number } | undefined
     const status = params?.status
     const events =
-      status === "on-going"
+      !status && params?.status_id === "2,3"
+        ? [
+            {
+              id: 41,
+              name: "Product Photoshoot",
+              event_code: "PPK",
+              event_start: "2026-04-10",
+              event_end: "2026-04-10",
+              date_event: "2026-04-10",
+              address: "Jakarta",
+              status: 2,
+              lifecycle_status: "upcoming",
+              total_items: 7,
+              scan_in_total: 2,
+              scan_out_total: 4,
+            },
+            {
+              id: 42,
+              name: "Rooftop Sunset Mixer",
+              event_code: "RSM",
+              event_start: "2026-04-09",
+              event_end: "2026-04-09",
+              date_event: "2026-04-09",
+              address: "Jakarta",
+              status: 3,
+              lifecycle_status: "upcoming",
+              total_items: 5,
+              scan_in_total: 1,
+              scan_out_total: 3,
+            },
+          ]
+        : status === "on-going"
         ? [
             {
               id: 4,
@@ -344,8 +392,6 @@ async function renderApp(signIn = true) {
     await Promise.resolve()
   })
 }
-
-const key = (code: string) => keyOf(EVENTS.find((e) => e.code === code)!)
 
 test("starts at sign in, then lands on events", async () => {
   await renderApp(false)
@@ -434,9 +480,8 @@ test("restores the saved session and removes it on sign out", async () => {
 const routes: [keyof RootStackParamList, object | undefined, string][] = [
   ["EventDetail", { eventKey: "4" }, "Engagement Rina & Bayu"],
   ["EventDetail", { eventKey: "nope" }, "Not found"],
-  ["Scanner", { eventKey: key("PPK") }, "SCAN IN"],
-  ["Scanner", { eventKey: key("RSM") }, "SCAN OUT"],
-  ["Scanner", { eventKey: key("ERB") }, "doesn't need scanning"],
+  ["Scanner", { eventKey: "4" }, "SCAN IN"],
+  ["Scanner", { eventKey: "nope" }, "Not found"],
   ["ItemDetail", { name: "Tiffany Chair" }, "On events"],
   ["ItemDetail", { name: "nope" }, "Not found"],
   ["Rentals", undefined, "Overdue"],
@@ -474,6 +519,90 @@ test("loads event detail and event items from the backend", async () => {
   )
 })
 
+test("validates the scanned QR, confirms item details, then refreshes scanned status", async () => {
+  const putSpy = jest.spyOn(apiClient, "put").mockResolvedValue({
+    data: { success: true, message: "Scan saved" },
+  } as never)
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("Scanner", { eventKey: "4" })
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(4)
+
+  expect(text()).toContain("Engagement Rina & Bayu")
+  expect(text()).toContain("Tiffany Chair")
+  expect(text()).toContain("Scan in")
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v3/fix-list-item-event",
+    expect.objectContaining({ params: { event_id: 4, order: "asc" }, signal: expect.anything() })
+  )
+
+  const cameraToggle = tree.root.findAll((node) => node.props.accessibilityLabel === "Turn camera on" && node.props.onPress)[0]
+  await ReactTestRenderer.act(async () => cameraToggle.props.onPress())
+  let camera = tree.root.findByProps({ testID: "scanner-camera" })
+
+  await ReactTestRenderer.act(async () => {
+    camera.props.onCodeScanned([{ value: "invalid/401/IN" }])
+    await Promise.resolve()
+  })
+  expect(text()).toContain("QR Code not valid")
+
+  camera = tree.root.findByProps({ testID: "scanner-camera" })
+  await ReactTestRenderer.act(async () => {
+    camera.props.onCodeScanned([{ value: "event_item/999/IN" }])
+    await Promise.resolve()
+  })
+  expect(text()).toContain("Barang ini tidak ada di event ini.")
+
+  camera = tree.root.findByProps({ testID: "scanner-camera" })
+  await ReactTestRenderer.act(async () => {
+    camera.props.onCodeScanned([{ value: "event_item/401/IN" }])
+    await Promise.resolve()
+  })
+  expect(text()).toContain("Qty")
+  expect(text()).toContain("Area")
+  expect(text()).toContain("Sub area")
+  expect(text()).toContain("2 pcs")
+  expect(tree.root.findByProps({ accessibilityLabel: "Tiffany Chair photo" }).props.source.uri).toBe(
+    "https://democreation.site/home/public/uploads/1/2026-01/tiffany-chair.jpg"
+  )
+
+  scannedItemIds.add(401)
+  const scanButton = tree.root.findByProps({ accessibilityLabel: "Scan IN" })
+  await ReactTestRenderer.act(async () => {
+    scanButton.props.onPress()
+    await flushAsyncWork(4)
+  })
+
+  expect(putSpy).toHaveBeenCalledWith("/v1/fix-list-item/scan", { id: 401, type: "IN" })
+  expect(text()).not.toContain("Sub area")
+  expect(text()).toContain("Perlu scan · 0")
+  expect(text()).toContain("Selesai · 1")
+
+  const doneTab = tree.root.findByProps({ accessibilityLabel: "Selesai · 1" })
+  await ReactTestRenderer.act(async () => doneTab.props.onPress())
+  expect(text()).toContain("Tiffany Chair")
+
+  await ReactTestRenderer.act(async () => {
+    jest.advanceTimersByTime(2501)
+  })
+  camera = tree.root.findByProps({ testID: "scanner-camera" })
+  await ReactTestRenderer.act(async () => {
+    camera.props.onCodeScanned([{ value: "event_item/401/IN" }])
+    await Promise.resolve()
+  })
+  const scanAgainButton = tree.root.findByProps({ accessibilityLabel: "Scan again" })
+  await ReactTestRenderer.act(async () => {
+    scanAgainButton.props.onPress()
+    await flushAsyncWork(4)
+  })
+
+  expect(putSpy).toHaveBeenCalledTimes(2)
+  expect(putSpy).toHaveBeenLastCalledWith("/v1/fix-list-item/scan", { id: 401, type: "IN" })
+  expect(text()).toContain("Selesai · 1")
+})
+
 const tabs = [
   ["ScanPicker", "At a scan stage"],
   ["Stock", "Total items"],
@@ -487,7 +616,37 @@ test.each(tabs)("opens the %s tab", async (tab, expected) => {
     navigationRef.navigate("Tabs", { screen: tab })
     jest.runOnlyPendingTimers()
   })
+  await flushAsyncWork(4)
   expect(text()).toContain(expected)
+})
+
+test("loads scan events filtered by the IDs of scan-in and scan-out statuses", async () => {
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("Tabs", { screen: "ScanPicker" })
+    jest.runOnlyPendingTimers()
+  })
+  await flushAsyncWork(5)
+
+  expect(text()).toContain("Product Photoshoot")
+  expect(text()).toContain("Rooftop Sunset Mixer")
+  expect(text()).toContain("Scan in")
+  expect(text()).toContain("Scan out")
+  expect(text()).toContain("2/7")
+  expect(text()).toContain("3/5")
+  expect(apiClient.get).toHaveBeenCalledWith(
+    "/v2/event-filter",
+    expect.objectContaining({
+      params: {
+        status_id: "2,3",
+        sort_by: "date_event",
+        sort: "DESC",
+        page: 1,
+        limit: 10,
+      },
+      signal: expect.anything(),
+    })
+  )
 })
 
 test("loads warehouse options and opname history from the API", async () => {
@@ -500,10 +659,10 @@ test("loads warehouse options and opname history from the API", async () => {
 
   expect(text()).toContain("Warehouse 70")
   expect(text()).toContain("Bali")
-  expect(text()).toContain("0 rows")
+  expect(text()).toContain("1.889 rows")
   expect(text()).toContain("#25")
   expect(text()).toContain("Approved")
-  expect(text()).toContain("Rp0")
+  expect(text()).toContain("Rp250.000")
   expect(apiClient.get).toHaveBeenCalledWith(
     "/v1/gudang",
     expect.objectContaining({ params: { page: 1, limit: 1000 }, signal: expect.anything() })

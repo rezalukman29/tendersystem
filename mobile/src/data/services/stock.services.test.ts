@@ -24,6 +24,7 @@ describe("StockServices opname integration", () => {
           flag: "draft",
           created_at: "2026-11-17 11:16:41",
           userId: 8,
+          valuation: 250000,
           data: [
             {
               id: 68,
@@ -70,7 +71,7 @@ describe("StockServices opname integration", () => {
           appliedBy: "8",
           warehouse: "Gudang Bali 70",
           countedCount: 1,
-          amount: 0,
+          amount: 250000,
           status: "Pending",
           items: [
             {
@@ -179,12 +180,12 @@ describe("StockServices opname integration", () => {
         total_pages: 1,
         total_records: 1,
         record_per_page: 1,
-        data: [{ id: 2, nama: "Gudang Bali 70", lokasi: "Bali" }],
+        data: [{ id: 2, nama: "Gudang Bali 70", lokasi: "Bali", total_items: 1889 }],
       },
     })
 
     await expect(service.getWarehouses()).resolves.toEqual([
-      { id: 2, name: "Gudang Bali 70", location: "Bali" },
+      { id: 2, name: "Gudang Bali 70", location: "Bali", totalItems: 1889 },
     ])
   })
 })

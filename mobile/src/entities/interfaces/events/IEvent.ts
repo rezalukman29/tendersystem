@@ -10,4 +10,6 @@ export interface IEvent {
   statusId: number
   lifecycleStatus: ClosingTab
   totalItems: number
+  scanInTotal: number
+  scanOutTotal: number
 }

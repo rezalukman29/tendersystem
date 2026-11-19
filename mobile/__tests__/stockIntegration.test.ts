@@ -116,8 +116,8 @@ describe("stock integration", () => {
           total_records: 2,
           record_per_page: 1000,
           data: [
-            { id: 2, nama: "Gudang Bali 70" },
-            { id: 3, nama: "Gudang Bali 66" },
+            { id: 2, nama: "Gudang Bali 70", total_items: 1889 },
+            { id: 3, nama: "Gudang Bali 66", total_items: 34 },
           ],
         },
       }),
@@ -133,8 +133,8 @@ describe("stock integration", () => {
     expect(summary).toEqual({ totalItems: 1940, safe: 1896, warning: 12, critical: 32 })
     expect(assetValue).toBe(295000000)
     expect(warehouses).toEqual([
-      { id: 2, name: "Gudang Bali 70" },
-      { id: 3, name: "Gudang Bali 66" },
+      { id: 2, name: "Gudang Bali 70", totalItems: 1889 },
+      { id: 3, name: "Gudang Bali 66", totalItems: 34 },
     ])
     expect(repository.getWarehouses).toHaveBeenCalledWith({ page: 1, limit: 1000 }, undefined)
   })

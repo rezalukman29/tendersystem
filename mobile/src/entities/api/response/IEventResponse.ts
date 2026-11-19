@@ -11,4 +11,6 @@ export interface IEventResponse {
   status: number
   lifecycle_status?: string
   total_items: number
+  scan_in_total?: number
+  scan_out_total?: number
 }
