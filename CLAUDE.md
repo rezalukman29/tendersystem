@@ -21,6 +21,12 @@ Tidak boleh terlewat. Perubahan kode belum dianggap selesai sebelum dokumentasin
 |---|---|---|
 | `docs/knowledge.md` | Setiap perubahan kode, merge dari `staging`, atau keputusan bisnis baru | Kondisi sistem terkini (bisnis + teknis), status integrasi API, celah yang diketahui, dan **log perubahan** (entri terbaru di atas) |
 | `docs/ui-changes.md` | Setiap perubahan tampilan: layar baru, layout, teks, warna, komponen, alur navigasi, state kosong/error | **Peta UI** per layar (selalu mencerminkan kondisi terkini) dan **log perubahan UI** (sebelum → sesudah, alasannya) |
+| `docs/review-notes.md` | Setiap perubahan kode yang penting, terutama yang menyentuh API/backend/database | Catatan untuk **main dev / reviewer**: dampak ke endpoint, payload, dan database (tulis "Tidak ada" kalau memang tidak ada); data lokal (key AsyncStorage, bentuk Redux, cache); perubahan perilaku; hal berisiko yang perlu dicek; verifikasi. Perbarui juga tabel "Ringkasan dampak" di atasnya |
+
+Untuk `docs/review-notes.md`:
+- **Isi entrinya setelah commit dibuat**, supaya hash commit-nya benar (boleh di commit lanjutan).
+- **Kalau sebuah perubahan mengasumsikan perilaku backend yang belum pasti**, tulis jelas sebagai asumsi dan tanyakan ke PM. Contoh asumsi: field baru, aturan potong stok, status baru.
+- **Jangan pernah mengubah kontrak API diam-diam.** Itu mencakup endpoint, nama field, dan payload.
 
 Aturan penulisan:
 - Perbarui bagian "kondisi terkini" supaya sesuai kode **dan** tambahkan entri log. Jangan hanya menambah log.

@@ -228,6 +228,11 @@ Belum pernah dites di HP atau simulator sungguhan dari lingkungan Claude (tidak 
 
 Format: `tanggal · branch@commit · oleh · ringkasan`, lalu detail, alasan, dan file.
 
+### 2026-11-19 · daniel-staging · Claude (permintaan PM): Catatan untuk reviewer
+- **Apa:** file baru `docs/review-notes.md`, berisi catatan per perubahan untuk main dev/reviewer. Fokusnya dampak ke API/backend/database, data lokal, perubahan perilaku, dan risiko. Aturannya ditambahkan di `CLAUDE.md` §2.
+- **Alasan:** app sudah tersambung ke server, jadi reviewer perlu tahu dengan cepat apakah sebuah perubahan menyentuh kontrak API atau database.
+- Entri awal mencatat perubahan dark mode (`cfa4749`) dan dokumentasi (`97c9769`). Keduanya **tidak** menyentuh API/database.
+
 ### 2026-11-19 · daniel-staging · Claude (permintaan PM): Dark / light mode
 - **Apa:** pengguna bisa memilih tema Light / Dark / System di Profile → Appearance. Default Light. Pilihan disimpan per HP.
 - **Alasan bisnis:** kenyamanan di lokasi gelap (venue malam, gudang), dan mengikuti setelan HP pengguna.
