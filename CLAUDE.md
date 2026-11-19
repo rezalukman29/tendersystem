@@ -1,0 +1,43 @@
+# Aturan kerja repo ini (wajib, setiap sesi)
+
+Pemilik: PM yang mengerjakan fitur dan UI lewat vibe coding. Bicara dengan PM dalam **Bahasa Indonesia**, dengan istilah bisnis. Istilah teknis boleh dipakai, tapi harus dijelaskan.
+
+## 1. Branch
+
+- **Baca dan push selalu di `daniel-staging`.** Jangan push ke branch lain, terutama `staging`, kecuali PM memintanya secara eksplisit.
+- `staging` adalah wilayah FE dev. Perubahan dari sana masuk ke `daniel-staging` hanya kalau PM minta ("pull dari staging dan cek"). Prosedurnya:
+  1. `git fetch origin staging`, lalu jelaskan commit baru: siapa, apa, file apa, dan dampak bisnisnya.
+  2. Cek bentrok dengan `git merge-tree`. Kalau ada konflik, **jangan memilih sendiri**: tunjukkan kedua versi dan minta keputusan PM.
+  3. Gabungkan dengan `git merge` biasa. Jangan rebase dan jangan force-push.
+  4. Jalankan pengecekan (lihat §3), laporkan hasilnya apa adanya, baru push ke `daniel-staging`.
+  5. Catat hasil merge di log `docs/knowledge.md` (dan `docs/ui-changes.md` kalau UI ikut berubah).
+- Penggabungan `daniel-staging` ke `staging` hanya lewat pull request, dan hanya kalau PM minta.
+
+## 2. Dokumentasi wajib diperbarui di SETIAP perubahan
+
+Tidak boleh terlewat. Perubahan kode belum dianggap selesai sebelum dokumentasinya ikut diperbarui **di commit yang sama**.
+
+| File | Kapan diperbarui | Isi |
+|---|---|---|
+| `docs/knowledge.md` | Setiap perubahan kode, merge dari `staging`, atau keputusan bisnis baru | Kondisi sistem terkini (bisnis + teknis), status integrasi API, celah yang diketahui, dan **log perubahan** (entri terbaru di atas) |
+| `docs/ui-changes.md` | Setiap perubahan tampilan: layar baru, layout, teks, warna, komponen, alur navigasi, state kosong/error | **Peta UI** per layar (selalu mencerminkan kondisi terkini) dan **log perubahan UI** (sebelum → sesudah, alasannya) |
+
+Aturan penulisan:
+- Perbarui bagian "kondisi terkini" supaya sesuai kode **dan** tambahkan entri log. Jangan hanya menambah log.
+- Format entri log: tanggal, branch/commit, siapa (PM/FE dev/Claude), apa yang berubah, alasan bisnis, dan file yang tersentuh.
+- Kalau ada yang belum diverifikasi (misalnya belum dites di HP sungguhan), tulis apa adanya.
+
+## 3. Pengecekan sebelum push (folder `mobile/`)
+
+Pakai **yarn**, bukan npm (`yarn.lock` yang dipakai tim; `package-lock.json` sudah tidak sinkron).
+
+```bash
+cd mobile && yarn install --frozen-lockfile
+yarn typecheck && yarn lint && yarn test
+```
+
+Laporkan hasilnya ke PM. Jangan mematikan atau melewati test supaya lolos.
+
+## 4. Arsitektur yang harus diikuti (ringkas)
+
+Lihat `mobile/src/ARCHITECTURE.md` dan `docs/knowledge.md`. Intinya: Screen (tipis) → Controller (hook) → View (hanya props). Data server lewat Service → Repository → `apiClient` dengan React Query. Fitur baru masuk ke `mobile/src/features/<fitur>/`.
