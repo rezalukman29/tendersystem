@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ActivityIndicator, StatusBar, View } from "react-native"
+import { ActivityIndicator, View } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
 import { AppProviders } from "./src/app/AppProviders"
@@ -21,7 +21,6 @@ export default function App() {
   return (
     <AppProviders>
       <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor={color.ground} />
         <ToastProvider>
           <AppStoreProvider fallback={<Loading />}>
             <RootNavigator />

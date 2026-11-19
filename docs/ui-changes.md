@@ -4,26 +4,35 @@
 > - **Bagian A–C:** kondisi UI **saat ini**. Selalu disesuaikan dengan kode.
 > - **Bagian D:** **log perubahan UI**, entri terbaru di atas, dengan format sebelum → sesudah.
 >
-> Terakhir disinkronkan dengan: `daniel-staging` @ `af4ea90` (2026-11-19).
+> Terakhir disinkronkan dengan: `daniel-staging` (2026-11-19, setelah dark/light mode).
 
 ---
 
 ## A. Fondasi desain
 
-**Token** (`mobile/src/theme.ts`, diambil dari web EMI):
+**Token** (`mobile/src/theme.ts`, diambil dari web EMI). Ada dua palet dengan nama token yang sama. Mode dipilih di Profile → Appearance (Light / Dark / System, default Light).
 
-| Peran | Token | Nilai |
-|---|---|---|
-| Latar halaman | `ground` | `#f6f8fb` |
-| Kartu / permukaan | `surface` | `#ffffff` |
-| Latar tekan / sekunder | `raised` | `#f1f3f8` |
-| Garis tipis | `border` | `#e4e7ef` |
-| Teks utama / sekunder / redup | `ink` / `muted` / `faint` | `#111827` / `#5b6472` / `#9ca3af` |
-| **Brand (navigasi, stage, aksi utama)** | `brand` | indigo `#4f46e5` |
-| Aksi simpan / diterima / aman | `green` | `#059669` |
-| Bahaya / rusak / kritis | `red` | `#dc2626` |
-| Peringatan / warning / Poor | `orange` | `#ea580c` |
-| Ownership IHC/IHP | `purple` | `#7c3aed` |
+| Peran | Token | Light | Dark |
+|---|---|---|---|
+| Latar halaman | `ground` | `#f6f8fb` | `#0b0d12` |
+| Kartu / permukaan | `surface` | `#ffffff` | `#151820` |
+| Latar tekan / sekunder | `raised` | `#f1f3f8` | `#1d212b` |
+| Garis tipis | `border` | `#e4e7ef` | `#262b36` |
+| Teks utama / sekunder / redup | `ink` / `muted` / `faint` | `#111827` / `#5b6472` / `#9ca3af` | `#e6e9ef` / `#98a1b0` / `#6b7382` |
+| **Brand (navigasi, stage, aksi utama)** | `brand` | indigo `#4f46e5` | `#6366f1` |
+| Aksi simpan / diterima / aman | `green` | `#059669` | `#059669` |
+| Bahaya / rusak / kritis | `red` | `#dc2626` | `#ef4444` |
+| Peringatan / warning / Poor | `orange` | `#ea580c` | `#f97316` |
+| Ownership IHC/IHP | `purple` | `#7c3aed` | `#a78bfa` |
+| Chip terpilih, toast (kebalikan halaman) | `inverse` / `onInverse` | `#111827` / `#fff` | `#e6e9ef` / `#111827` |
+| Garis tombol destructive | `redLine` | `#f3c4c4` | `#5c2326` |
+
+Setiap warna juga punya pasangan `…Soft` (latar tag/callout) dan `…Ink` (teks di atasnya).
+
+**Aturan warna untuk UI baru:**
+- jangan hardcode warna; pakai `color.*`;
+- style level modul dibungkus `themed(() => …)`;
+- Scanner sengaja tetap gelap di kedua mode.
 
 Aturan dasar:
 - **Radius:** kontrol 7, kartu 11, sheet 14.
@@ -177,6 +186,11 @@ Legenda sumber data: 🟢 API, 🟡 campuran, 🔴 mock.
 
 ### C12. Profile 🟡 · `screens/Profile.tsx`
 - **Kartu:** inisial, nama, email (mono), tag role (Admin indigo, lainnya netral), lalu catatan role.
+- **Section Appearance** (`features/appearance/views/AppearanceSection.tsx`):
+  - baris "Theme" dengan ikon sesuai pilihan (matahari / bulan / matahari-bulan);
+  - petunjuk: "Applies to this phone only." atau, untuk System, "Follows your phone (now light/dark).";
+  - segmented **Light | Dark | System**;
+  - mengganti pilihan langsung mengubah seluruh app, dan pengguna tetap di Profile. Kalau gagal tersimpan, muncul toast error "Couldn't save the theme on this phone."
 - **Section Sync:** status Online/Offline, "N waiting to send" atau "Last sent …", 4 antrean terakhir, switch **Offline test mode**. Antrean ini dari store mock.
 - Tombol **Sign out** (ghost). Ditolak kalau antrean outbox belum kosong.
 - Footer "EMI mobile · v0.4" (hardcode).
@@ -196,6 +210,25 @@ Format setiap entri:
 - File: …
 - Diverifikasi: (test / screenshot / belum dites di HP)
 ```
+
+### 2026-11-19 · daniel-staging · Claude (permintaan PM): Dark / light mode
+- **Layar:** semua layar, plus Profile (setelan baru).
+- **Sebelum:** app hanya bertema terang, dan tidak ada setelan tampilan.
+- **Sesudah:**
+  - Profile punya section **Appearance** dengan pilihan Light / Dark / System (default Light);
+  - semua layar memakai palet gelap saat Dark aktif;
+  - status bar dan tema navigasi ikut berganti.
+- **Detail visual:**
+  - chip filter terpilih: sebelumnya hitam dengan teks putih (hardcode), sekarang memakai token `inverse` (di Dark: chip terang dengan teks gelap);
+  - toast normal memakai `inverse`; toast error tetap merah dengan teks putih;
+  - garis tombol destructive memakai token `redLine`.
+- **Alasan:** kenyamanan di tempat gelap, dan mengikuti setelan HP.
+- **File:** `src/theme.ts`, `src/ui/primitives.tsx`, `src/ui/toast.tsx`, `src/ui/sheet.tsx`, `src/screens/Scanner.tsx`, `src/screens/Profile.tsx`, `src/navigation.tsx`, `App.tsx`, `src/features/appearance/*`, `src/app/theme/*`.
+- **Diverifikasi:**
+  - test (72 lolos);
+  - screenshot preview web light vs dark untuk Profile, Events, Event Detail, Stock, Opname;
+  - ganti mode langsung dari Profile.
+  - **Belum dites di HP sungguhan.**
 
 ### 2026-11-19 · daniel-staging · Claude (atas permintaan PM)
 - Dokumen dibuat. Peta UI di atas mencatat kondisi baseline `af4ea90`.

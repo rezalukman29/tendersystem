@@ -1,7 +1,9 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import {
   NavigationContainer,
+  DarkTheme,
   DefaultTheme,
+  type NavigationState,
   createNavigationContainerRef,
   useNavigation,
   type NavigatorScreenParams,
@@ -11,6 +13,7 @@ import { Boxes, CalendarRange, CircleUserRound, ClipboardCheck, ScanLine, type L
 import * as React from "react"
 import { Text, View } from "react-native"
 
+import { useResolvedColorScheme } from "./app/theme/useColorSchemeState"
 import { EventsScreen } from "./features/events/screens/EventsScreen"
 import { LoginScreen } from "./features/auth/screens/LoginScreen"
 import { EventDetailScreen } from "./features/eventDetail/screens/EventDetailScreen"
@@ -55,16 +58,19 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>()
 const Stack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<TabParamList>()
 
-const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: color.ground,
-    primary: color.brand,
-    card: color.surface,
-    border: color.border,
-    text: color.ink,
-  },
+function navigationTheme(scheme: "light" | "dark") {
+  const base = scheme === "dark" ? DarkTheme : DefaultTheme
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: color.ground,
+      primary: color.brand,
+      card: color.surface,
+      border: color.border,
+      text: color.ink,
+    },
+  }
 }
 
 function tabIcon(Icon: LucideIcon, badge?: number) {
@@ -118,8 +124,19 @@ function Tabs() {
 
 export function RootNavigator() {
   const isAuthenticated = useAppSelector((state) => state.session.status === "authenticated")
+  const scheme = useResolvedColorScheme()
+  // Switching the theme redraws every screen; keep the user where they were.
+  const navState = React.useRef<NavigationState | undefined>(undefined)
   return (
-    <NavigationContainer ref={navigationRef} theme={theme}>
+    <NavigationContainer
+      key={scheme}
+      ref={navigationRef}
+      theme={navigationTheme(scheme)}
+      initialState={navState.current}
+      onStateChange={(state) => {
+        navState.current = state
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.ground } }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />

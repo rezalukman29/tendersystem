@@ -3,6 +3,8 @@ import * as React from "react"
 import { ScrollView, Switch, View } from "react-native"
 
 import { stamp } from "../core/format"
+import { useAppearanceController } from "../features/appearance/controllers/useAppearanceController"
+import { AppearanceSection } from "../features/appearance/views/AppearanceSection"
 import { useLogout } from "../features/auth/hooks/useLogout"
 import { useAppStore } from "../store"
 import { color, mono, radius, tabular } from "../theme"
@@ -19,6 +21,7 @@ const ROLE_NOTE = {
 export function ProfileScreen() {
   const toast = useToast()
   const clearSession = useLogout()
+  const appearance = useAppearanceController()
   const { user, online, outbox, lastSyncAt, forceOffline, setForceOffline, logout: clearLegacySession } = useAppStore()
   if (!user) return null
 
@@ -57,6 +60,8 @@ export function ProfileScreen() {
         <Text variant="tiny" style={{ paddingHorizontal: 16, paddingTop: 8 }}>
           {ROLE_NOTE[user.role]}
         </Text>
+
+        <AppearanceSection {...appearance} />
 
         <SectionLabel>Sync</SectionLabel>
         <ListCard>

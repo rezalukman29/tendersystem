@@ -15,7 +15,7 @@ import {
   type ViewStyle,
 } from "react-native"
 
-import { color, font, radius, tabular } from "../theme"
+import { color, font, radius, tabular, themed } from "../theme"
 
 /* ---------- Text ---------- */
 
@@ -25,7 +25,7 @@ export function Text({ variant = "body", muted, style, ...props }: TextProps & {
   return <RNText {...props} style={[textStyles[variant], muted && { color: color.muted }, style]} />
 }
 
-const textStyles = StyleSheet.create({
+const textStyles = themed(() => StyleSheet.create({
   title: { fontSize: font.title, fontWeight: "700", color: color.ink, letterSpacing: -0.4 },
   heading: { fontSize: font.heading, fontWeight: "600", color: color.ink, letterSpacing: -0.2 },
   body: { fontSize: font.body, color: color.ink, lineHeight: 21 },
@@ -36,7 +36,7 @@ const textStyles = StyleSheet.create({
   figure: { fontSize: font.figure, fontWeight: "600", color: color.ink, letterSpacing: -0.6, ...tabular },
   // Field labels and table heads: small, heavy, a little tracked.
   label: { fontSize: font.tiny, fontWeight: "600", color: color.muted, letterSpacing: 0.3 },
-})
+}))
 
 /* ---------- Button ---------- */
 
@@ -85,22 +85,22 @@ export function Button({
   )
 }
 
-const buttonVariants: Record<ButtonVariant | "disabled", { box: ViewStyle; fg: string }> = {
+const buttonVariants = themed<Record<ButtonVariant | "disabled", { box: ViewStyle; fg: string }>>(() => ({
   primary: { box: { backgroundColor: color.brand }, fg: "#fff" },
   positive: { box: { backgroundColor: color.green }, fg: "#fff" },
   outline: { box: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.control }, fg: color.ink },
   secondary: { box: { backgroundColor: color.raised }, fg: color.ink },
   ghost: { box: { backgroundColor: "transparent" }, fg: color.ink2 },
-  destructive: { box: { backgroundColor: color.surface, borderWidth: 1, borderColor: "#f3c4c4" }, fg: color.red },
+  destructive: { box: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.redLine }, fg: color.red },
   // Disabled stays legible: a grey fill, not a faded colour.
   disabled: { box: { backgroundColor: color.raised }, fg: color.faint },
-}
+}))
 
 /* ---------- Tag (status pill) ---------- */
 
 export type Tone = "neutral" | "brand" | "green" | "orange" | "red" | "purple" | "outline"
 
-const TONES: Record<Tone, { bg: string; fg: string; border?: string }> = {
+const TONES = themed<Record<Tone, { bg: string; fg: string; border?: string }>>(() => ({
   neutral: { bg: color.raised, fg: color.ink2 },
   brand: { bg: color.brandSoft, fg: color.brandInk },
   green: { bg: color.greenSoft, fg: color.greenInk },
@@ -108,7 +108,7 @@ const TONES: Record<Tone, { bg: string; fg: string; border?: string }> = {
   red: { bg: color.redSoft, fg: color.redInk },
   purple: { bg: color.purpleSoft, fg: color.purpleInk },
   outline: { bg: color.surface, fg: color.ink2, border: color.border },
-}
+}))
 
 export const toneColor = (t: Tone) => TONES[t]
 
@@ -204,8 +204,8 @@ export function Callout({
 export function Chip({ label, count, selected, onPress }: { label: string; count?: number; selected?: boolean; onPress?: () => void }) {
   return (
     <Pressable accessibilityRole="radio" accessibilityState={{ checked: !!selected }} onPress={onPress} style={[styles.chip, selected && styles.chipOn]}>
-      <RNText style={[styles.chipText, selected && { color: "#fff" }]}>{label}</RNText>
-      {count !== undefined && <RNText style={[styles.chipCount, selected && { color: "rgba(255,255,255,0.75)" }]}>{count}</RNText>}
+      <RNText style={[styles.chipText, selected && { color: color.onInverse }]}>{label}</RNText>
+      {count !== undefined && <RNText style={[styles.chipCount, selected && { color: color.onInverse, opacity: 0.75 }]}>{count}</RNText>}
     </Pressable>
   )
 }
@@ -347,7 +347,7 @@ export function StatStrip({ children, style }: { children: React.ReactNode; styl
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   button: { height: 44, paddingHorizontal: 16, borderRadius: radius.control, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   buttonText: { fontSize: 15, fontWeight: "600" },
   tag: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", borderRadius: 5, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1 },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 32 },
   callout: { flexDirection: "row", gap: 10, borderRadius: radius.control, padding: 12 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: color.surface, borderWidth: 1, borderColor: color.border },
-  chipOn: { backgroundColor: color.ink, borderColor: color.ink },
+  chipOn: { backgroundColor: color.inverse, borderColor: color.inverse },
   chipText: { fontSize: font.meta, fontWeight: "600", color: color.ink2 },
   chipCount: { fontSize: font.meta, color: color.faint, ...tabular },
   segTrack: { flexDirection: "row", gap: 3, padding: 3, borderRadius: radius.control + 2, backgroundColor: color.raised },
@@ -374,4 +374,4 @@ const styles = StyleSheet.create({
   meta: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   metaText: { fontSize: font.meta, color: color.muted, ...tabular, flexShrink: 1 },
   metaRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 12, rowGap: 4 },
-})
+}))

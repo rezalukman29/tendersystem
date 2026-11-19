@@ -11,7 +11,10 @@ import { getActiveCredential, setActiveCredential } from "../src/data/auth/activ
 import { navigationRef, type RootStackParamList } from "../src/navigation"
 import { clearProfile } from "../src/redux/profileSlice"
 import { bootstrapUnauthenticated } from "../src/redux/sessionSlice"
+import { appearanceLoaded } from "../src/redux/appearanceSlice"
 import { store } from "../src/redux/store"
+import { APPEARANCE_STORAGE_KEY } from "../src/data/appearance/appearanceStore"
+import { color } from "../src/theme"
 import { clearUserPlan } from "../src/redux/userPlanSlice"
 
 jest.useFakeTimers()
@@ -584,4 +587,50 @@ test("counts warehouse inventory and submits only the changed rows", async () =>
       ([url, config]) => url === "/v1/stock-opname" && config?.params?.limit === 20
     ).length
   ).toBeGreaterThan(1)
+})
+
+/** The segment of a Segmented control whose label is `label`. */
+const segment = (label: string) =>
+  tree.root.findAll(
+    (n) =>
+      n.props.accessibilityRole === "radio" &&
+      typeof n.props.onPress === "function" &&
+      n.findAll((c) => c.children.includes(label)).length > 0
+  )[0]
+
+test("switches between light and dark from Profile and stays on Profile", async () => {
+  await renderApp()
+  await ReactTestRenderer.act(async () => {
+    navigationRef.navigate("Tabs", { screen: "Profile" })
+    jest.runOnlyPendingTimers()
+  })
+  expect(text()).toContain("Appearance")
+  expect(color.ground).toBe("#f6f8fb")
+
+  try {
+    await ReactTestRenderer.act(async () => {
+      segment("Dark").props.onPress()
+      jest.runOnlyPendingTimers()
+    })
+    await flushAsyncWork(2)
+
+    expect(store.getState().appearance.preference).toBe("dark")
+    expect(color.ground).toBe("#0b0d12")
+    expect(await AsyncStorage.getItem(APPEARANCE_STORAGE_KEY)).toBe("dark")
+    // The screens were redrawn, but the user is still on Profile.
+    expect(text()).toContain("Appearance")
+    expect(navigationRef.getCurrentRoute()?.name).toBe("Profile")
+
+    await ReactTestRenderer.act(async () => {
+      segment("Light").props.onPress()
+      jest.runOnlyPendingTimers()
+    })
+    await flushAsyncWork(2)
+    expect(color.ground).toBe("#f6f8fb")
+    expect(await AsyncStorage.getItem(APPEARANCE_STORAGE_KEY)).toBe("light")
+  } finally {
+    ReactTestRenderer.act(() => {
+      store.dispatch(appearanceLoaded("light"))
+    })
+  }
 })

@@ -3,7 +3,7 @@
 > Dokumen hidup. **Wajib diperbarui di setiap perubahan** (lihat `CLAUDE.md`).
 > Bagian 1–7 = kondisi sistem **saat ini**. Bagian 8 = **log perubahan** (terbaru di atas).
 >
-> Terakhir disinkronkan dengan: `daniel-staging` @ `af4ea90` (sama dengan `staging` per 2026-11-19).
+> Terakhir disinkronkan dengan: `daniel-staging` (2026-11-19, setelah fitur dark/light mode). Basis dari `staging` @ `af4ea90`.
 
 ---
 
@@ -75,13 +75,20 @@ Folder lain di repo:
 
 **Potong dan kembalikan stok.** Dikerjakan **di backend**, bukan di mobile. Mobile tidak bisa melihat flag stage seperti `cuttingStock` atau `stockReturn`, karena API status hanya mengembalikan `id, name, action, order_data, active_event`. Aturan pastinya perlu dicek di repo backend atau di web.
 
-### 2.3 Stok gudang
+### 2.3 Tampilan (light / dark mode)
+- Pengguna memilih tema di **Profile → Appearance**: **Light**, **Dark**, atau **System** (mengikuti setelan HP).
+- **Default Light**, jadi tidak ada perubahan bagi yang tidak membuka setelan ini.
+- Pilihan disimpan **per HP** (AsyncStorage `emi:appearance:v1`), tidak ikut akun, tetap ada setelah sign out, dan tidak dikirim ke server.
+- Mengganti tema berlaku langsung. Semua layar digambar ulang, dan pengguna tetap di layar yang sama.
+- Scanner tetap bertema gelap di kedua mode (by design, untuk kamera).
+
+### 2.4 Stok gudang
 - Stok per item per gudang diambil dari `GET /v1/barang-gudang/detail`. Bisa difilter per gudang, status, dan kata kunci.
 - Status stok minimum: **SAFE / WARNING / CRITICAL / NOT_SET**. Status ini dihitung server.
 - Ringkasan jumlah item per status diambil dari `GET /v1/warehouse-inventory-summary`. Ada juga nilai aset dari `GET /v1/inventory-summary`, tapi hook-nya ada dan belum dipakai di UI.
 - Daftar gudang diambil dari `GET /v1/gudang`.
 
-### 2.4 Rent (sewa) dan Outsource
+### 2.5 Rent (sewa) dan Outsource
 
 | | Rent (`loan`) | Outsource |
 |---|---|---|
@@ -95,7 +102,7 @@ Folder lain di repo:
 - Kalau record terkait event, setelah diterima barangnya masuk sebagai item event (diurus server). Mobile hanya menampilkan pesan "added to the event".
 - "Mark Returned/Completed" selalu minta konfirmasi dulu.
 
-### 2.5 Stock opname (hitung fisik)
+### 2.6 Stock opname (hitung fisik)
 1. Pilih gudang. Semua item gudang dimuat (limit 99999), dan angka hitung awal = stok sistem.
 2. Isi jumlah aktual dan kondisi (Good/Poor). Kalau Poor, tambahkan catatan.
 3. **Yang dikirim hanya baris yang selisih atau ditandai Poor.**
@@ -143,6 +150,19 @@ mobile/
 
 **Stack:** React Query 5, Redux Toolkit 2, Formik + Yup, axios, React Navigation 7, VisionCamera 4.6, lucide icons.
 
+**Tema (light/dark):**
+- `src/theme.ts` punya dua palet (`lightPalette`, `darkPalette`) dengan nama token yang sama.
+- `color` adalah palet **aktif**. `applyColorScheme()` menukar isinya.
+- Style yang dibuat sekali di level modul (`StyleSheet.create`, peta varian tombol/tag) **wajib** dibungkus `themed(() => …)`, supaya dibangun ulang setelah mode berganti.
+- `useResolvedColorScheme()` (`src/app/theme/`) menggabungkan pilihan user dengan setelan HP.
+- `ThemeGate` (di `AppProviders`) membaca pilihan tersimpan sebelum layar pertama digambar, dan mengatur status bar.
+- `NavigationContainer` diberi `key` = mode, jadi seluruh layar digambar ulang saat mode berganti. Posisi navigasi disimpan di ref, jadi pengguna tidak terlempar.
+- State pilihan ada di Redux `appearance`. Setelan UI ada di `features/appearance/` (controller + view), dipasang di layar Profile.
+- **Aturan untuk kode baru:**
+  - jangan hardcode warna (`#fff`, `#111827`, dan sebagainya); pakai token `color.*`;
+  - untuk latar terpilih yang "kebalikan halaman", pakai `color.inverse` / `color.onInverse`;
+  - teks putih di atas tombol berwarna (brand/green/red) boleh tetap `#fff`.
+
 **Tooling:** `yarn` (bukan npm). Reactotron untuk debugging.
 
 ---
@@ -161,7 +181,7 @@ mobile/
 | Opname Detail | API (dari parameter navigasi) / mock | ⚠️ approve/reject hanya untuk mock |
 | Item Detail | **Mock** (`core/seed.ts`) | ❌ belum diintegrasikan |
 | Scan Picker, Scanner | **Mock** | ❌ belum diintegrasikan |
-| Profile | Nama/role dari API, sync/outbox dari mock | ⚠️ campuran |
+| Profile | Nama/role dari API, sync/outbox dari mock, tema disimpan di HP | ⚠️ campuran |
 
 ---
 
@@ -189,8 +209,8 @@ cd mobile && yarn install --frozen-lockfile
 yarn typecheck && yarn lint && yarn test
 ```
 
-Kondisi per 2026-11-19 (`af4ea90`): typecheck ✅, lint ✅, **67 test lolos** dari 8 suite:
-- `__tests__/`: App, authSession, eventsIntegration, rules, stockIntegration, store
+Kondisi per 2026-11-19 (setelah dark/light mode): typecheck ✅, lint ✅, **72 test lolos** dari 9 suite:
+- `__tests__/`: App, authSession, eventsIntegration, rules, stockIntegration, store, theme
 - `src/data/services/`: rentals.services, stock.services
 
 Belum pernah dites di HP atau simulator sungguhan dari lingkungan Claude (tidak ada Android SDK/Xcode).
@@ -207,6 +227,26 @@ Belum pernah dites di HP atau simulator sungguhan dari lingkungan Claude (tidak 
 ## 8. Log perubahan
 
 Format: `tanggal · branch@commit · oleh · ringkasan`, lalu detail, alasan, dan file.
+
+### 2026-11-19 · daniel-staging · Claude (permintaan PM): Dark / light mode
+- **Apa:** pengguna bisa memilih tema Light / Dark / System di Profile → Appearance. Default Light. Pilihan disimpan per HP.
+- **Alasan bisnis:** kenyamanan di lokasi gelap (venue malam, gudang), dan mengikuti setelan HP pengguna.
+- **Teknis:**
+  - palet dark ditambahkan, dan `color` dijadikan palet aktif;
+  - helper `themed()` untuk style level modul;
+  - Redux slice `appearance`, penyimpanan `appearanceStore`;
+  - `ThemeGate` + `useResolvedColorScheme`;
+  - navigasi digambar ulang saat mode berganti, dengan posisi dipertahankan;
+  - token baru `inverse`, `onInverse`, `redLine` menggantikan warna hardcode di chip terpilih, toast, dan tombol destructive.
+- **Dipilih supaya perubahan kecil:** ±250 pemakaian `color.*` di 22 file **tidak diubah**. Ini mengurangi risiko konflik saat merge dengan pekerjaan FE dev.
+- **File:**
+  - baru: `src/theme.ts`, `src/redux/appearanceSlice.ts`, `src/redux/store.ts`, `src/data/appearance/appearanceStore.ts`, `src/app/theme/ThemeGate.tsx`, `src/app/theme/useColorSchemeState.ts`, `src/features/appearance/*`
+  - diubah: `src/app/AppProviders.tsx`, `App.tsx`, `src/navigation.tsx`, `src/screens/Profile.tsx`, `src/ui/primitives.tsx`, `src/ui/toast.tsx`, `src/ui/sheet.tsx`, `src/screens/Scanner.tsx`
+  - test: `__tests__/theme.test.tsx` (baru), `__tests__/App.test.tsx`
+- **Verifikasi:**
+  - typecheck, lint, dan 72 test lolos;
+  - preview web (react-native-web, data palsu): Profile, Events, Event Detail, Stock, Opname dalam kedua mode, termasuk ganti mode langsung dari Profile;
+  - **Belum dites di HP/simulator sungguhan** (status bar, mode System saat HP berganti tema).
 
 ### 2026-11-19 · daniel-staging · Claude (atas permintaan PM)
 - **Dokumentasi awal dibuat.** File: `CLAUDE.md`, `docs/knowledge.md`, `docs/ui-changes.md`.

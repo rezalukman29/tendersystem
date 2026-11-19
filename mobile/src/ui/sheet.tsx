@@ -3,7 +3,7 @@ import * as React from "react"
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { color, radius } from "../theme"
+import { color, radius, themed } from "../theme"
 import { Text } from "./primitives"
 
 /** Plain bottom sheet: backdrop tap, back button and the X all close it. */
@@ -45,7 +45,7 @@ export function Sheet({
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)" },
   wrap: { flex: 1, justifyContent: "flex-end" },
   sheet: {
@@ -56,4 +56,4 @@ const styles = StyleSheet.create({
   },
   grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: color.border, marginTop: 8 },
   head: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
-})
+}))

@@ -11,7 +11,7 @@ import { isWaiting, type ScanResult } from "../core/rules"
 import type { RootStackParamList } from "../navigation"
 import { eventView, unitOf } from "../selectors"
 import { useAppStore } from "../store"
-import { color, font, mono, radius, tabular } from "../theme"
+import { color, font, mono, radius, tabular, themed } from "../theme"
 import { Header, IconButton, LineRow, ScanBar, SyncStatus } from "../ui/domain"
 import { Button, Chip, EmptyState, Text } from "../ui/primitives"
 import { Sheet } from "../ui/sheet"
@@ -303,7 +303,7 @@ function ScanFeedback({ feedback, canUndo, onUndo }: { feedback: Feedback | null
   )
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   viewfinder: { height: 220, marginHorizontal: 16, marginTop: 14, borderRadius: radius.card, overflow: "hidden", backgroundColor: color.darkSurface },
   tapHint: { position: "absolute", alignSelf: "center", top: 88, flexDirection: "row", alignItems: "center", gap: 6 },
   offline: { position: "absolute", top: 10, alignSelf: "center", flexDirection: "row", gap: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
@@ -315,4 +315,4 @@ const styles = StyleSheet.create({
   listFirst: { borderTopWidth: 1, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card },
   listLast: { borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card },
   footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: color.surface, borderTopWidth: 1, borderTopColor: color.border },
-})
+}))

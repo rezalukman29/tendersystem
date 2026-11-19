@@ -2,7 +2,7 @@ import * as React from "react"
 import { StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { color, font, radius } from "../theme"
+import { color, font, radius, themed } from "../theme"
 
 type Tone = "default" | "success" | "error"
 interface ToastApi {
@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         >
           <View style={[styles.toast, toast.tone === "error" && styles.error]}>
             {toast.tone === "success" && <View style={styles.dot} />}
-            <Text style={styles.text}>{toast.message}</Text>
+            <Text style={[styles.text, toast.tone === "error" && styles.errorText]}>{toast.message}</Text>
           </View>
         </View>
       )}
@@ -53,19 +53,20 @@ export function useToast() {
   return React.useContext(Ctx)
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   wrap: { position: "absolute", left: 16, right: 16, alignItems: "center", zIndex: 100 },
   toast: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: color.ink,
+    backgroundColor: color.inverse,
     borderRadius: radius.card,
     paddingHorizontal: 14,
     paddingVertical: 11,
     maxWidth: 420,
   },
   error: { backgroundColor: color.red },
+  errorText: { color: "#fff" },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#34d399" },
-  text: { color: "#fff", fontSize: font.small, fontWeight: "500" },
-})
+  text: { color: color.onInverse, fontSize: font.small, fontWeight: "500" },
+}))
