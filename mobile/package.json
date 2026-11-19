@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "build:apk": "cd android && ENVFILE=.env ./gradlew assembleRelease",
     "ios": "react-native run-ios  --udid D412A51E-A94B-4371-9148-7B87D19FF374",
     "pod:install": "cd ios && $HOME/.rvm/rubies/ruby-3.2.5/bin/ruby -rbundler/setup -e 'load Gem.bin_path(\"cocoapods\", \"pod\")' -- install",
     "lint": "eslint .",
