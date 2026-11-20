@@ -38,6 +38,14 @@
 
 ## Entri
 
+### Aturan baru: butuh API = stop dulu · 2026-11-20 · PM
+
+**Ringkasan:** mulai sekarang, permintaan yang butuh API baru atau berubah tidak langsung dikerjakan. Claude berhenti, menjelaskan kebutuhannya ke PM, dan mencatatnya di sini dengan status "Butuh API: menunggu PM/backend".
+
+**Dampak backend / database / API:** tidak ada. Ini aturan kerja, aturannya ada di `CLAUDE.md` §2b.
+
+---
+
 ### Dark / light mode · `cfa4749` · 2026-11-19 · Claude (permintaan PM)
 
 **Ringkasan:** pengguna bisa memilih tema Light / Dark / System di Profile → Appearance. Default Light.

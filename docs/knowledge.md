@@ -228,6 +228,11 @@ Belum pernah dites di HP atau simulator sungguhan dari lingkungan Claude (tidak 
 
 Format: `tanggal · branch@commit · oleh · ringkasan`, lalu detail, alasan, dan file.
 
+### 2026-11-20 · daniel-staging · PM: Aturan "butuh API = stop dulu"
+- **Apa:** aturan kerja baru di `CLAUDE.md` §2b. Permintaan yang butuh API baru/berubah dihentikan dulu, dijelaskan ke PM, lalu dicatat di `docs/review-notes.md`.
+- **Konteks:** aturan yang sama sudah diterapkan di repo web `rezalukman29/emi` (branch `daniel-staging-web`). Pekerjaan web hari ini (dark mode, port halaman Event, filter Event Calendar) ada di repo itu, dengan catatannya sendiri.
+- Tidak ada perubahan kode aplikasi.
+
 ### 2026-11-19 · daniel-staging · Claude (permintaan PM): Catatan untuk reviewer
 - **Apa:** file baru `docs/review-notes.md`, berisi catatan per perubahan untuk main dev/reviewer. Fokusnya dampak ke API/backend/database, data lokal, perubahan perilaku, dan risiko. Aturannya ditambahkan di `CLAUDE.md` §2.
 - **Alasan:** app sudah tersambung ke server, jadi reviewer perlu tahu dengan cepat apakah sebuah perubahan menyentuh kontrak API atau database.

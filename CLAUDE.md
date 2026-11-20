@@ -33,6 +33,14 @@ Aturan penulisan:
 - Format entri log: tanggal, branch/commit, siapa (PM/FE dev/Claude), apa yang berubah, alasan bisnis, dan file yang tersentuh.
 - Kalau ada yang belum diverifikasi (misalnya belum dites di HP sungguhan), tulis apa adanya.
 
+## 2b. Butuh API? Stop dan tanya PM dulu (aturan PM, 2026-11-20)
+
+Kalau sebuah permintaan (atau sebagian darinya) butuh **API backend baru atau berubah**, **hentikan dulu bagian itu dan jelaskan ke PM** apa yang dibutuhkan dan kenapa, dengan bahasa bisnis. Yang termasuk: endpoint baru, field atau parameter baru, payload berubah, atau data yang belum ada di respons API sekarang.
+- Kerjakan hanya bagian yang bisa jalan dengan API yang ada, lalu sebutkan dengan jelas apa yang ditinggalkan.
+- Catat di `docs/review-notes.md` dengan status **"Butuh API: menunggu PM/backend"**: kebutuhan UI-nya, endpoint mana, dan field apa. Tujuannya supaya developer bisa langsung mengambilnya.
+- Jangan membuat API palsu (mock) yang membuat fitur tampak selesai, kecuali PM minta preview mock.
+- Untuk web (`rezalukman29/emi`), aturan yang sama ada di `CLAUDE.md` repo itu, dengan pencatatan di `docs/api-impact-log.md`.
+
 ## 3. Pengecekan sebelum push (folder `mobile/`)
 
 Pakai **yarn**, bukan npm (`yarn.lock` yang dipakai tim; `package-lock.json` sudah tidak sinkron).
